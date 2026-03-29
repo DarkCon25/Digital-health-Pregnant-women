@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import 'views/login_page.dart';
 
-
 void main() {
   runApp(const MyApp());
 }
@@ -56,67 +55,6 @@ class MyApp extends StatelessWidget {
         return MaterialPageRoute(
           builder: (_) => const LoginPage(),
           settings: settings,
-        );
-
-      case '/dashboard':
-        return MaterialPageRoute(
-          builder: (_) => const DashboardPage(),
-          settings: settings,
-        );
-
-      case '/patients':
-        return MaterialPageRoute(
-          builder: (_) => const PatientListPage(),
-          settings: settings,
-        );
-
-      case '/patient_details':
-        final patientId = settings.arguments as String?;
-        return MaterialPageRoute(
-          builder: (_) => PatientDetailsPage(patientId: patientId ?? ''),
-          settings: settings,
-        );
-
-      case '/add_edit_patient':
-        final arguments = settings.arguments as Map<String, dynamic>?;
-        final patientId = arguments?['patientId'] as String?;
-        return MaterialPageRoute(
-          builder: (_) => AddEditPatientPage(patientId: patientId),
-          settings: settings,
-        );
-
-      case '/medications':
-        final patientId = settings.arguments as String?;
-        return MaterialPageRoute(
-          builder: (_) => MedicationTrackingPage(patientId: patientId ?? ''),
-          settings: settings,
-        );
-
-      case '/risk_prediction':
-        final patientId = settings.arguments as String?;
-        return MaterialPageRoute(
-          builder: (_) => RiskPredictionPage(patientId: patientId ?? ''),
-          settings: settings,
-        );
-
-      case '/ai_assistant':
-        final patientId = settings.arguments as String?;
-        return MaterialPageRoute(
-          builder: (_) => AIAssistantPage(patientId: patientId ?? ''),
-          settings: settings,
-        );
-
-      case '/childbirth_stats':
-        return MaterialPageRoute(
-          builder: (_) => const ChildbirthStatsPage(),
-          settings: settings,
-        );
-
-      default:
-        return MaterialPageRoute(
-          builder: (_) => Scaffold(
-            body: Center(child: Text('Route not found: ${settings.name}')),
-          ),
         );
     }
   }
