@@ -13,25 +13,35 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
+  bool isLoading = false;
+
   @override
   void initState() {
     super.initState();
-    _loadEmail(); // تحميل الإيميل المخزن عند فتح التطبيق
+    loadSavedEmail();
   }
 
-  // تحميل الإيميل من SharedPreferences
-  void _loadEmail() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? savedEmail = prefs.getString('saved_email');
+  // Load saved email
+  Future<void> loadSavedEmail() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedEmail = prefs.getString('saved_email');
+
     if (savedEmail != null) {
       emailController.text = savedEmail;
     }
   }
 
-  // تسجيل الدخول وحفظ الإيميل
-  void login() async {
-    String email = emailController.text;
-    String password = passwordController.text;
+  // Login function
+  Future<void> login() async {
+    final email = emailController.text.trim();
+    final password = passwordController.text;
+
+    if (email.isEmpty || password.isEmpty) {
+      showMessage("Please enter email and password", Colors.orange);
+      return;
+    }
+
+    setState(() => isLoading = true);
 
     try {
       await FirebaseAuth.instance.signInWithEmailAndPassword(
@@ -39,72 +49,119 @@ class _LoginPageState extends State<LoginPage> {
         password: password,
       );
 
-      // بعد النجاح نحفظ الإيميل محليًا
-      SharedPreferences prefs = await SharedPreferences.getInstance();
+      // Save email locally
+      final prefs = await SharedPreferences.getInstance();
       await prefs.setString('saved_email', email);
 
-      print("تم تسجيل الدخول بنجاح!");
+      showMessage("Login successful!", Colors.green);
+
+      // Navigate to home page (optional)
+      // Navigator.pushReplacementNamed(context, '/home');
+    } on FirebaseAuthException catch (e) {
+      String message = "Login failed";
+
+      if (e.code == 'user-not-found') {
+        message = "User not found";
+      } else if (e.code == 'wrong-password') {
+        message = "Wrong password";
+      } else if (e.code == 'invalid-email') {
+        message = "Invalid email";
+      }
+
+      showMessage(message, Colors.red);
     } catch (e) {
-      print("خطأ في تسجيل الدخول: $e");
+      showMessage("Unexpected error: $e", Colors.red);
+    } finally {
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
     }
+  }
+
+  // SnackBar helper
+  void showMessage(String text, Color color) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(text), backgroundColor: color));
   }
 
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+
     return Scaffold(
       body: Stack(
         children: [
-          // الخلفية
+          // Background Image
           SizedBox.expand(
             child: Image.asset(
               'assets/images/photo_2026-03-29_20-43-57.jpg',
               fit: BoxFit.cover,
             ),
           ),
-          // النموذج
+
+          // Login Card
           Center(
             child: Container(
-              width: MediaQuery.of(context).size.width * 0.25,
-              height: MediaQuery.of(context).size.height * 0.4,
-              padding: const EdgeInsets.all(20),
+              width: width * 0.3,
+              padding: const EdgeInsets.all(25),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.8),
-                borderRadius: BorderRadius.circular(15),
+                color: Colors.white.withOpacity(0.9),
+                borderRadius: BorderRadius.circular(20),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // الحقل للإيميل يظهر مخزن مسبقًا ويمكن تغييره
-                  const SizedBox(height: 60),
+                  const Text(
+                    "Login",
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  ),
+
+                  const SizedBox(height: 25),
+
+                  // Email Field
                   TextField(
                     controller: emailController,
-                    style: const TextStyle(color: Colors.black),
-                    decoration: const InputDecoration(labelText: "Email"),
+                    decoration: const InputDecoration(
+                      labelText: "Email",
+                      border: OutlineInputBorder(),
+                    ),
                   ),
-                  const SizedBox(height: 60),
+
+                  const SizedBox(height: 20),
+
+                  // Password Field
                   TextField(
                     controller: passwordController,
-                    style: const TextStyle(color: Colors.black),
-                    decoration: const InputDecoration(labelText: "Password"),
                     obscureText: true,
-                  ),
-                  const SizedBox(height: 90),
-                  SizedBox(
-                    width: MediaQuery.of(context).size.width * 0.2,
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed: login,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text(
-                        "Login",
-                        style: TextStyle(fontSize: 18, color: Colors.white),
-                      ),
+                    decoration: const InputDecoration(
+                      labelText: "Password",
+                      border: OutlineInputBorder(),
                     ),
+                  ),
+
+                  const SizedBox(height: 30),
+
+                  // Login Button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: isLoading
+                        ? const Center(child: CircularProgressIndicator())
+                        : ElevatedButton(
+                            onPressed: login,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text(
+                              "Login",
+                              style: TextStyle(fontSize: 18,
+                                  color: Colors.black),
+                            ),
+                          ),
                   ),
                 ],
               ),
