@@ -41,48 +41,48 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyCIsRdlNG18v-RSRN1Ti90H4xns8hT3QGU',
-    appId: '1:305824296312:web:f2f54b71bc12d0f57c2c8d',
-    messagingSenderId: '305824296312',
-    projectId: 'hercare-dhs',
-    authDomain: 'hercare-dhs.firebaseapp.com',
-    storageBucket: 'hercare-dhs.firebasestorage.app',
-    measurementId: 'G-69TNTCMMDG',
+    apiKey: 'AIzaSyBfEztq4TPWf8H_PrwgrQgH_O-1tIhIXcY',
+    appId: '1:67387531775:web:d06572c25ccf608f6c47ca',
+    messagingSenderId: '67387531775',
+    projectId: 'test1-19246',
+    authDomain: 'test1-19246.firebaseapp.com',
+    storageBucket: 'test1-19246.firebasestorage.app',
+    measurementId: 'G-DEGTZH9SQH',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyBcKYp1ADPHffcGfQ607NPZvqJ1XuzWUJI',
-    appId: '1:305824296312:android:fdbe23c55e95e3967c2c8d',
-    messagingSenderId: '305824296312',
-    projectId: 'hercare-dhs',
-    storageBucket: 'hercare-dhs.firebasestorage.app',
+    apiKey: 'AIzaSyAyZePKCVtm8suV37VTL4VveeXz4FFDlpQ',
+    appId: '1:67387531775:android:c8a32bd23f3f5a6a6c47ca',
+    messagingSenderId: '67387531775',
+    projectId: 'test1-19246',
+    storageBucket: 'test1-19246.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyCtz6TdFvC32CZS9fFhaG--gLSjRY6kA2A',
-    appId: '1:305824296312:ios:f654d5f82e1936a47c2c8d',
-    messagingSenderId: '305824296312',
-    projectId: 'hercare-dhs',
-    storageBucket: 'hercare-dhs.firebasestorage.app',
-    iosBundleId: 'com.example.myDesktopApp',
+    apiKey: 'AIzaSyA8nVrvg26JvJncoWlmqnNh1nDHYIpTel0',
+    appId: '1:67387531775:ios:e2e548e00fe3c5536c47ca',
+    messagingSenderId: '67387531775',
+    projectId: 'test1-19246',
+    storageBucket: 'test1-19246.firebasestorage.app',
+    iosBundleId: 'com.example.test1',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyCtz6TdFvC32CZS9fFhaG--gLSjRY6kA2A',
-    appId: '1:305824296312:ios:f654d5f82e1936a47c2c8d',
-    messagingSenderId: '305824296312',
-    projectId: 'hercare-dhs',
-    storageBucket: 'hercare-dhs.firebasestorage.app',
-    iosBundleId: 'com.example.myDesktopApp',
+    apiKey: 'AIzaSyA8nVrvg26JvJncoWlmqnNh1nDHYIpTel0',
+    appId: '1:67387531775:ios:e2e548e00fe3c5536c47ca',
+    messagingSenderId: '67387531775',
+    projectId: 'test1-19246',
+    storageBucket: 'test1-19246.firebasestorage.app',
+    iosBundleId: 'com.example.test1',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyCIsRdlNG18v-RSRN1Ti90H4xns8hT3QGU',
-    appId: '1:305824296312:web:c95c1bafe726f50f7c2c8d',
-    messagingSenderId: '305824296312',
-    projectId: 'hercare-dhs',
-    authDomain: 'hercare-dhs.firebaseapp.com',
-    storageBucket: 'hercare-dhs.firebasestorage.app',
-    measurementId: 'G-P0F2WSVK2Q',
+    apiKey: 'AIzaSyBfEztq4TPWf8H_PrwgrQgH_O-1tIhIXcY',
+    appId: '1:67387531775:web:c3ab990e4efe22b06c47ca',
+    messagingSenderId: '67387531775',
+    projectId: 'test1-19246',
+    authDomain: 'test1-19246.firebaseapp.com',
+    storageBucket: 'test1-19246.firebasestorage.app',
+    measurementId: 'G-QKD9T3HD0X',
   );
 }
