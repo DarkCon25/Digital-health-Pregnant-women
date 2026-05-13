@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../core/admin_colors.dart';
 import '../../viewmodels/admin/admin_dashboard_viewmodel.dart';
+import '../../widgets/responsive_dashboard_shell.dart';
 
 // ============================================
 // HerCare - Messages Screen
@@ -53,26 +54,18 @@ class _MessagesScreenState extends State<MessagesScreen> {
   Widget build(BuildContext context) {
     final service = context.read<AdminDashboardViewModel>().service;
 
-    return Row(
-      children: [
-        // â”€â”€ Left: Contacts List
-        // â”€â”€ Gauche : Liste des contacts
-        _buildContactsList(service),
-
-        // Divider
-        const VerticalDivider(
-          width: 1,
-          color: AdminColors.border,
-        ),
-
-        // â”€â”€ Right: Chat Area
-        // â”€â”€ Droite : Zone de chat
-        Expanded(
-          child: _selectedContactId == null
-              ? _buildNoChatSelected()
-              : _buildChatArea(service),
-        ),
-      ],
+    return ResponsiveHorizontalSplit(
+      leftWidth: 280,
+      minRightWidth: 360,
+      between: const VerticalDivider(
+        width: 1,
+        color: AdminColors.border,
+      ),
+      betweenWidth: 1,
+      left: _buildContactsList(service),
+      right: _selectedContactId == null
+          ? _buildNoChatSelected()
+          : _buildChatArea(service),
     );
   }
 
@@ -147,6 +140,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                       name: fullName,
                       role: role,
                       isSelected: isSelected,
+                      unreadCountStream: service.getUnreadCountStream(contactId),
                       onTap: () => setState(() {
                         _selectedContactId = contactId;
                         _selectedContactName = fullName;
@@ -266,11 +260,20 @@ class _MessagesScreenState extends State<MessagesScreen> {
               }
 
               final messages = snapshot.data?.docs ?? [];
+              final sorted = [...messages]..sort((a, b) {
+                final aTs = (a.data() as Map<String, dynamic>)['createdAt'] as Timestamp?;
+                final bTs = (b.data() as Map<String, dynamic>)['createdAt'] as Timestamp?;
+                final aMs = aTs?.millisecondsSinceEpoch ?? 0;
+                final bMs = bTs?.millisecondsSinceEpoch ?? 0;
+                return aMs.compareTo(bMs);
+              });
+
+              service.markMessagesAsRead(_selectedContactId!);
 
               // Scroll when new message arrives
               _scrollToBottom();
 
-              if (messages.isEmpty) {
+              if (sorted.isEmpty) {
                 return Center(
                   child: Text(
                     'No messages yet / Aucun message',
@@ -285,9 +288,9 @@ class _MessagesScreenState extends State<MessagesScreen> {
               return ListView.builder(
                 controller: _scrollCtrl,
                 padding: const EdgeInsets.all(16),
-                itemCount: messages.length,
+                itemCount: sorted.length,
                 itemBuilder: (context, index) {
-                  final data = messages[index].data() as Map<String, dynamic>;
+                  final data = sorted[index].data() as Map<String, dynamic>;
                   final isMe = data['senderId'] == myUid;
 
                   return _MessageBubble(
@@ -413,12 +416,14 @@ class _ContactTile extends StatefulWidget {
   final String role;
   final bool isSelected;
   final VoidCallback onTap;
+  final Stream<int> unreadCountStream;
 
   const _ContactTile({
     required this.name,
     required this.role,
     required this.isSelected,
     required this.onTap,
+    required this.unreadCountStream,
   });
 
   @override
@@ -493,9 +498,7 @@ class _ContactTileState extends State<_ContactTile> {
                       overflow: TextOverflow.ellipsis,
                     ),
                     Text(
-                      widget.role == 'doctor'
-                          ? 'Doctor / MÃ©decin'
-                          : 'Nurse / InfirmiÃ¨re',
+                      _roleLabel(widget.role),
                       style: GoogleFonts.inter(
                         fontSize: 11,
                         color: AdminColors.textSecondary,
@@ -504,11 +507,49 @@ class _ContactTileState extends State<_ContactTile> {
                   ],
                 ),
               ),
+              StreamBuilder<int>(
+                stream: widget.unreadCountStream,
+                builder: (context, snapshot) {
+                  final unread = snapshot.data ?? 0;
+                  if (unread <= 0) return const SizedBox.shrink();
+                  return Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: AdminColors.danger,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      '$unread',
+                      style: GoogleFonts.inter(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  );
+                },
+              ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  String _roleLabel(String role) {
+    switch (role) {
+      case 'doctor':
+        return 'Doctor / MÃ©decin';
+      case 'nurse':
+        return 'Nurse / InfirmiÃ¨re';
+      case 'patient':
+        return 'Patient / Patiente';
+      case 'admin':
+        return 'Admin';
+      default:
+        return role;
+    }
   }
 }
 

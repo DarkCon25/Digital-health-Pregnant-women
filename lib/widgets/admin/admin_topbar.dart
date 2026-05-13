@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/admin_colors.dart';
@@ -48,7 +49,7 @@ class _AdminTopbarState extends State<AdminTopbar> {
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.04),
+                color: Colors.black.withValues(alpha: 0.04),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
@@ -56,30 +57,36 @@ class _AdminTopbarState extends State<AdminTopbar> {
           ),
           child: Row(
             children: [
-              // ── Title ──────────────────────────
-              Text(
-                widget.pageTitle,
-                style: GoogleFonts.inter(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: AdminColors.textPrimary,
+              Expanded(
+                flex: 2,
+                child: Text(
+                  widget.pageTitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.inter(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: AdminColors.textPrimary,
+                  ),
                 ),
               ),
-
-              const Spacer(),
-
-              // ── Search ─────────────────────────
-              _buildSearch(),
-
-              const Spacer(),
-
-              // ── Notifications ──────────────────
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 3,
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 320),
+                    child: _buildSearch(),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
               _buildNotifBtn(),
-
-              const SizedBox(width: 16),
-
-              // ── Profile ────────────────────────
-              _buildProfile(name),
+              const SizedBox(width: 8),
+              Flexible(
+                child: _buildProfile(name),
+              ),
             ],
           ),
         );
@@ -90,7 +97,7 @@ class _AdminTopbarState extends State<AdminTopbar> {
   // ── Search ───────────────────────────────────────
   Widget _buildSearch() {
     return Container(
-      width: 260,
+      width: double.infinity,
       height: 40,
       decoration: BoxDecoration(
         color: AdminColors.pageBg,
@@ -195,7 +202,6 @@ class _AdminTopbarState extends State<AdminTopbar> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Avatar
         Container(
           width: 40,
           height: 40,
@@ -223,28 +229,41 @@ class _AdminTopbarState extends State<AdminTopbar> {
         ),
 
         const SizedBox(width: 10),
-
-        // Name + Role
-        Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              name,
-              style: GoogleFonts.inter(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: AdminColors.textPrimary,
+        Expanded(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AdminColors.textPrimary,
+                ),
               ),
-            ),
-            Text(
-              AppStrings.systemAdmin,
-              style: GoogleFonts.inter(
-                fontSize: 11,
-                color: AdminColors.textSecondary,
+              Text(
+                AppStrings.systemAdmin,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.inter(
+                  fontSize: 11,
+                  color: AdminColors.textSecondary,
+                ),
               ),
-            ),
-          ],
+              Text(
+                DateFormat('EEE, dd MMM yyyy').format(DateTime.now()),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.inter(
+                  fontSize: 10,
+                  color: AdminColors.textLight,
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );

@@ -152,11 +152,24 @@ class AuthService {
   // ─────────────────────────────────────────────
 
   Future<void> signOut() async {
+    Object? googleError;
     try {
       await _googleSignIn.signOut();
+    } catch (e) {
+      // Google sign-out can fail for non-Google sessions; continue with Firebase sign-out.
+      googleError = e;
+    }
+
+    try {
       await _auth.signOut();
     } catch (e) {
-      throw Exception('Failed to sign out: $e');
+      throw Exception('Failed to sign out from Firebase: $e');
+    }
+
+    if (googleError != null) {
+      // Keep non-blocking for app logout, but still expose a trace for debugging if needed.
+      // ignore: avoid_print
+      print('Google signOut warning: $googleError');
     }
   }
 

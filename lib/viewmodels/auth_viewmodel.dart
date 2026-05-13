@@ -44,7 +44,8 @@ class AuthViewModel extends ChangeNotifier {
       _setError('Login failed. Échec de la connexion.');
       return false;
     } on Exception catch (e) {
-      _setError(_parseFirebaseError(e.toString()));
+      _setError(_parseFirebaseError(_normalizeError(e)));
+
       return false;
     }
   }
@@ -82,7 +83,8 @@ class AuthViewModel extends ChangeNotifier {
       );
       return false;
     } on Exception catch (e) {
-      _setError(_parseFirebaseError(e.toString()));
+      _setError(_parseFirebaseError(_normalizeError(e)));
+
       return false;
     }
   }
@@ -103,7 +105,8 @@ class AuthViewModel extends ChangeNotifier {
       _setIdle();
       return false;
     } on Exception catch (e) {
-      _setError(_parseFirebaseError(e.toString()));
+      _setError(_parseFirebaseError(_normalizeError(e)));
+
       return false;
     }
   }
@@ -136,7 +139,8 @@ class AuthViewModel extends ChangeNotifier {
       _setSuccess();
       return true;
     } on Exception catch (e) {
-      _setError(_parseFirebaseError(e.toString()));
+      _setError(_parseFirebaseError(_normalizeError(e)));
+
       return false;
     }
   }
@@ -200,9 +204,16 @@ class AuthViewModel extends ChangeNotifier {
 
     if (msg.contains('wrong-password') ||
         msg.contains('invalid-credential') ||
-        msg.contains('invalid credential')) {
+        msg.contains('invalid credential') ||
+        msg.contains('email or password is incorrect') ||
+        msg.contains('incorrect password')) {
       return 'Incorrect password.\n'
           'Mot de passe incorrect.';
+    }
+
+    if (msg.contains('no account found with this email')) {
+      return 'No account found with this email.\n'
+          'Aucun compte trouve avec cet e-mail.';
     }
 
     if (msg.contains('email-already-in-use')) {
@@ -279,11 +290,21 @@ class AuthViewModel extends ChangeNotifier {
       _setSuccess();
       return true;
     } on Exception catch (e) {
-      _setError(_parseFirebaseError(e.toString()));
+      _setError(_parseFirebaseError(_normalizeError(e)));
+
       return false;
     }
   }
 
+
+  String _normalizeError(Object e) {
+    final raw = e.toString();
+    const prefix = 'Exception: ';
+    if (raw.startsWith(prefix)) {
+      return raw.substring(prefix.length).trim();
+    }
+    return raw.trim();
+  }
   void _setLoading() {
     _status = AuthStatus.loading;
     _errorMessage = null;
@@ -308,3 +329,5 @@ class AuthViewModel extends ChangeNotifier {
     notifyListeners();
   }
 }
+
+

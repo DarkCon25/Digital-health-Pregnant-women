@@ -2,18 +2,53 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+
 import '../../core/admin_colors.dart';
-import '../../services/admin_service.dart';
+import '../../core/admin_doctors_strings.dart';
 import '../../viewmodels/admin/admin_dashboard_viewmodel.dart';
+import '../../widgets/admin/add_doctor_dialog.dart';
+import '../../widgets/admin/assign_patient_to_doctor_dialog.dart';
 import '../../widgets/admin/data_table_widget.dart';
+import '../../widgets/admin/edit_doctor_dialog.dart';
+import 'doctor_profile_screen.dart';
 
-// ============================================
-// HerCare - Doctors Screen
-// Écran des Médecins
-// ============================================
+// HerCare — Admin doctors: real-time Firestore, filters, CRUD, assign, availability.
 
-class DoctorsScreen extends StatelessWidget {
+class DoctorsScreen extends StatefulWidget {
   const DoctorsScreen({super.key});
+
+  @override
+  State<DoctorsScreen> createState() => _DoctorsScreenState();
+}
+
+class _DoctorsScreenState extends State<DoctorsScreen> {
+  final _search = TextEditingController();
+  String _specialtyFilter = '';
+  String _statusFilter = '';
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  void _openProfile(
+    BuildContext context,
+    String id,
+    Map<String, dynamic> data,
+  ) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ChangeNotifierProvider.value(
+          value: context.read<AdminDashboardViewModel>(),
+          child: DoctorProfileScreen(
+            doctorId: id,
+            initialData: data,
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,29 +59,24 @@ class DoctorsScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Header Row
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Page Title / Titre de la page
-              Text(
-                'Doctors List / Liste des Médecins',
-                style: GoogleFonts.inter(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                  color: AdminColors.textPrimary,
+              Expanded(
+                child: Text(
+                  AdminDoctorsStrings.pageTitle,
+                  style: GoogleFonts.inter(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: AdminColors.textPrimary,
+                  ),
                 ),
               ),
-
-              // Add Doctor Button / Bouton Ajouter Médecin
               ElevatedButton.icon(
-                onPressed: () => _showAddDoctorDialog(context, service),
+                onPressed: () => showAddDoctorDialog(context, service),
                 icon: const Icon(Icons.add_rounded, size: 18),
                 label: Text(
-                  'Add Doctor / Ajouter Médecin',
-                  style: GoogleFonts.inter(
-                    fontWeight: FontWeight.w600,
-                  ),
+                  AdminDoctorsStrings.addDoctor,
+                  style: GoogleFonts.inter(fontWeight: FontWeight.w600),
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AdminColors.primaryBlue,
@@ -62,103 +92,259 @@ class DoctorsScreen extends StatelessWidget {
               ),
             ],
           ),
-
-          const SizedBox(height: 20),
-
-          // ── Doctors Table with Firebase Stream
-          // ── Tableau médecins avec Firebase Stream
+          const SizedBox(height: 16),
+          _filterBar(),
+          const SizedBox(height: 16),
           StreamBuilder<QuerySnapshot>(
             stream: service.getDoctorsStream(),
             builder: (context, snapshot) {
-              // Check loading state / Vérifier l'état de chargement
-              final isLoading =
-                  snapshot.connectionState == ConnectionState.waiting;
+              final loading =
+                  snapshot.connectionState == ConnectionState.waiting &&
+                      !snapshot.hasData;
 
-              // Get documents / Obtenir les documents
-              final docs = snapshot.data?.docs ?? [];
+              if (snapshot.hasError) {
+                return _errorCard('${snapshot.error}');
+              }
 
-              return AdminDataTable(
-                title: 'Doctors (${docs.length}) / Médecins',
-                isLoading: isLoading,
-                columns: const [
-                  'Name / Nom',
-                  'Phone / Téléphone',
-                  'Specialty / Spécialité',
-                  'Status / Statut',
-                  'Actions',
-                ],
-                rows: docs.map((doc) {
-                  final data = doc.data() as Map<String, dynamic>;
-                  final fullName = '${data['firstName'] ?? ''} '
-                      '${data['lastName'] ?? ''}';
+              final raw = snapshot.data?.docs ?? [];
+              final specialties = <String>{};
+              for (final d in raw) {
+                final m = d.data()! as Map<String, dynamic>;
+                final s = '${m['specialty'] ?? ''}'.trim();
+                if (s.isNotEmpty) specialties.add(s);
+              }
+              final sortedSpecs = specialties.toList()..sort();
 
-                  return [
-                    // Name + Avatar
-                    Row(
-                      children: [
-                        // Avatar circle / Cercle avatar
-                        CircleAvatar(
-                          radius: 16,
-                          backgroundColor:
-                              AdminColors.primaryBlue.withAlpha(38),
-                          child: Text(
-                            fullName.isNotEmpty
-                                ? fullName[0].toUpperCase()
-                                : 'D',
-                            style: const TextStyle(
-                              color: AdminColors.primaryBlue,
-                              fontWeight: FontWeight.w700,
+              final q = _search.text.trim().toLowerCase();
+              final docs = raw.where((doc) {
+                final data = doc.data()! as Map<String, dynamic>;
+                final fn =
+                    '${data['firstName'] ?? ''} ${data['lastName'] ?? ''}'
+                        .toLowerCase();
+                final em = '${data['email'] ?? ''}'.toLowerCase();
+                final ph = '${data['phone'] ?? ''}'.toLowerCase();
+                final spec = '${data['specialty'] ?? ''}'.trim();
+                final st = '${data['status'] ?? 'active'}';
+
+                if (_specialtyFilter.isNotEmpty && spec != _specialtyFilter) {
+                  return false;
+                }
+                if (_statusFilter.isNotEmpty && st != _statusFilter) {
+                  return false;
+                }
+                if (q.isEmpty) return true;
+                return fn.contains(q) || em.contains(q) || ph.contains(q);
+              }).toList();
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (sortedSpecs.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Wrap(
+                        spacing: 8,
+                        children: [
+                          Text(
+                            '${AdminDoctorsStrings.filterSpecialty}:',
+                            style: GoogleFonts.inter(
                               fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: AdminColors.textSecondary,
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 10),
-                        Text(
-                          fullName,
-                          style: GoogleFonts.inter(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: AdminColors.textPrimary,
+                          ChoiceChip(
+                            label: Text(AdminDoctorsStrings.filterAll),
+                            selected: _specialtyFilter.isEmpty,
+                            onSelected: (_) =>
+                                setState(() => _specialtyFilter = ''),
+                          ),
+                          ...sortedSpecs.map(
+                            (s) => ChoiceChip(
+                              label: Text(s),
+                              selected: _specialtyFilter == s,
+                              onSelected: (_) =>
+                                  setState(() => _specialtyFilter = s),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final tableWidth =
+                          constraints.maxWidth < 1240 ? 1240.0 : constraints.maxWidth;
+                      return SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: SizedBox(
+                          width: tableWidth,
+                          child: AdminDataTable(
+                        title:
+                            '${AdminDoctorsStrings.tableTitle} (${docs.length})',
+                        isLoading: loading,
+                        columns: const [
+                          AdminDoctorsStrings.colName,
+                          AdminDoctorsStrings.colEmail,
+                          AdminDoctorsStrings.colPhone,
+                          AdminDoctorsStrings.colSpecialty,
+                          AdminDoctorsStrings.colPatients,
+                          AdminDoctorsStrings.colAvailable,
+                          AdminDoctorsStrings.colStatus,
+                          AdminDoctorsStrings.colActions,
+                        ],
+                        rows: docs.map((doc) {
+                          final data = doc.data()! as Map<String, dynamic>;
+                          final fullName =
+                              '${data['firstName'] ?? ''} ${data['lastName'] ?? ''}'
+                                  .trim();
+                          final displayName =
+                              fullName.isEmpty ? doc.id : fullName;
+                          final email = '${data['email'] ?? '—'}';
+                          final phone = '${data['phone'] ?? '—'}';
+                          final specialty = '${data['specialty'] ?? '—'}';
+                          final patients = data['patients'] is int
+                              ? data['patients'] as int
+                              : int.tryParse('${data['patients'] ?? 0}') ?? 0;
+                          final isAvailable = data['isAvailable'] != false;
+
+                          return [
+                            Row(
+                              children: [
+                                CircleAvatar(
+                                  radius: 16,
+                                  backgroundColor:
+                                      AdminColors.primaryBluePale,
+                                  backgroundImage:
+                                      (data['profileImage'] as String?) !=
+                                                  null &&
+                                              (data['profileImage'] as String)
+                                                  .isNotEmpty
+                                          ? NetworkImage(
+                                              data['profileImage'] as String,
+                                            )
+                                          : null,
+                                  child:
+                                      (data['profileImage'] as String?) ==
+                                                  null ||
+                                              (data['profileImage'] as String)
+                                                  .isEmpty
+                                          ? Text(
+                                              displayName.isNotEmpty
+                                                  ? displayName[0]
+                                                      .toUpperCase()
+                                                  : 'D',
+                                              style: const TextStyle(
+                                                color: AdminColors.primaryBlue,
+                                                fontWeight: FontWeight.w700,
+                                                fontSize: 13,
+                                              ),
+                                            )
+                                          : null,
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    displayName,
+                                    style: GoogleFonts.inter(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: AdminColors.textPrimary,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Text(
+                              email,
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                color: AdminColors.textSecondary,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              phone,
+                              style: GoogleFonts.inter(
+                                fontSize: 13,
+                                color: AdminColors.textSecondary,
+                              ),
+                            ),
+                            Text(
+                              specialty,
+                              style: GoogleFonts.inter(
+                                fontSize: 13,
+                                color: AdminColors.textSecondary,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              '$patients',
+                              style: GoogleFonts.inter(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            Switch.adaptive(
+                              value: isAvailable,
+                              activeTrackColor:
+                                  AdminColors.primaryBlue.withValues(alpha: 0.45),
+                              activeThumbColor: AdminColors.primaryBlue,
+                              onChanged: (v) async {
+                                await service.setDoctorAvailability(
+                                  doctorId: doc.id,
+                                  isAvailable: v,
+                                );
+                              },
+                            ),
+                            StatusBadge(
+                              status: '${data['status'] ?? 'active'}',
+                            ),
+                            TableActions(
+                              onView: () => _openProfile(
+                                context,
+                                doc.id,
+                                data,
+                              ),
+                              onAssign: () => showAssignPatientToDoctorDialog(
+                                context,
+                                service,
+                                doctorId: doc.id,
+                                doctorName: displayName,
+                              ),
+                              onEdit: () => showEditDoctorDialog(
+                                context,
+                                service,
+                                doc.id,
+                                data,
+                              ),
+                              onDelete: () async {
+                                final ok = await service.deleteDoctor(doc.id);
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        ok
+                                            ? AdminDoctorsStrings
+                                                .doctorDeleted
+                                            : '${AdminDoctorsStrings.errorPrefix}: delete',
+                                      ),
+                                      backgroundColor: ok
+                                          ? AdminColors.success
+                                          : AdminColors.danger,
+                                    ),
+                                  );
+                                }
+                              },
+                            ),
+                          ];
+                        }).toList(),
                           ),
                         ),
-                      ],
-                    ),
-
-                    // Phone / Téléphone
-                    Text(
-                      data['phone'] ?? '-',
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        color: AdminColors.textSecondary,
-                      ),
-                    ),
-
-                    // Specialty / Spécialité
-                    Text(
-                      data['specialty'] ?? '-',
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        color: AdminColors.textSecondary,
-                      ),
-                    ),
-
-                    // Status Badge / Badge statut
-                    StatusBadge(
-                      status: data['status'] ?? 'active',
-                    ),
-
-                    // Action Buttons / Boutons d'action
-                    TableActions(
-                      onEdit: () => _showEditDoctorDialog(
-                        context,
-                        service,
-                        doc.id,
-                        data,
-                      ),
-                      onDelete: () => service.deleteDoctor(doc.id),
-                    ),
-                  ];
-                }).toList(),
+                      );
+                    },
+                  ),
+                ],
               );
             },
           ),
@@ -167,464 +353,94 @@ class DoctorsScreen extends StatelessWidget {
     );
   }
 
-  // ══════════════════════════════════════════
-  // ADD DOCTOR DIALOG / DIALOGUE AJOUTER MÉDECIN
-  // ══════════════════════════════════════════
-  void _showAddDoctorDialog(
-    BuildContext context,
-    AdminService service,
-  ) {
-    // Controllers for form fields
-    // Contrôleurs pour les champs du formulaire
-    final firstNameCtrl = TextEditingController();
-    final lastNameCtrl = TextEditingController();
-    final emailCtrl = TextEditingController();
-    final passwordCtrl = TextEditingController();
-    final phoneCtrl = TextEditingController();
-    final specialtyCtrl = TextEditingController();
-    bool isLoading = false;
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Container(
-            width: 500,
-            padding: const EdgeInsets.all(28),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // ── Dialog Header
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // Close button / Bouton fermer
-                      IconButton(
-                        onPressed: () => Navigator.pop(ctx),
-                        icon: const Icon(Icons.close_rounded),
-                      ),
-                      Text(
-                        'Add New Doctor / Ajouter Médecin',
-                        style: GoogleFonts.inter(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: AdminColors.textPrimary,
-                        ),
-                      ),
-                    ],
+  Widget _filterBar() {
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: const BorderSide(color: AdminColors.border),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Expanded(
+              flex: 2,
+              child: TextField(
+                controller: _search,
+                onChanged: (_) => setState(() {}),
+                decoration: InputDecoration(
+                  hintText: AdminDoctorsStrings.searchHint,
+                  prefixIcon: const Icon(Icons.search, size: 20),
+                  filled: true,
+                  fillColor: AdminColors.pageBg,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
                   ),
-
-                  const SizedBox(height: 20),
-
-                  // ── Name Row (First + Last)
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildFormField(
-                          label: 'First Name / Prénom',
-                          controller: firstNameCtrl,
-                          icon: Icons.person_outline_rounded,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildFormField(
-                          label: 'Last Name / Nom',
-                          controller: lastNameCtrl,
-                          icon: Icons.person_outline_rounded,
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 14),
-
-                  // Email
-                  _buildFormField(
-                    label: 'Email',
-                    controller: emailCtrl,
-                    icon: Icons.email_outlined,
-                    inputType: TextInputType.emailAddress,
-                  ),
-
-                  const SizedBox(height: 14),
-
-                  // Password / Mot de passe
-                  _buildFormField(
-                    label: 'Password / Mot de passe',
-                    controller: passwordCtrl,
-                    icon: Icons.lock_outline_rounded,
-                    isPassword: true,
-                  ),
-
-                  const SizedBox(height: 14),
-
-                  // Phone / Téléphone
-                  _buildFormField(
-                    label: 'Phone / Téléphone',
-                    controller: phoneCtrl,
-                    icon: Icons.phone_outlined,
-                    inputType: TextInputType.phone,
-                  ),
-
-                  const SizedBox(height: 14),
-
-                  // Specialty / Spécialité
-                  _buildFormField(
-                    label: 'Specialty / Spécialité',
-                    controller: specialtyCtrl,
-                    icon: Icons.medical_services_outlined,
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // ── Action Buttons
-                  Row(
-                    children: [
-                      // Cancel / Annuler
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () => Navigator.pop(ctx),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 14,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                          child: Text(
-                            'Cancel / Annuler',
-                            style: GoogleFonts.inter(),
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(width: 12),
-
-                      // Add / Ajouter
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: isLoading
-                              ? null
-                              : () async {
-                                  // Validate fields
-                                  if (emailCtrl.text.isEmpty ||
-                                      passwordCtrl.text.isEmpty) {
-                                    return;
-                                  }
-
-                                  setDialogState(
-                                    () => isLoading = true,
-                                  );
-
-                                  try {
-                                    await service.addDoctor(
-                                      firstName: firstNameCtrl.text,
-                                      lastName: lastNameCtrl.text,
-                                      email: emailCtrl.text,
-                                      password: passwordCtrl.text,
-                                      phone: phoneCtrl.text,
-                                      specialty: specialtyCtrl.text,
-                                    );
-
-                                    if (ctx.mounted) {
-                                      Navigator.pop(ctx);
-                                      _showSnackBar(
-                                        context,
-                                        '✅ Doctor added successfully!'
-                                        ' / Médecin ajouté!',
-                                        AdminColors.success,
-                                      );
-                                    }
-                                  } catch (e) {
-                                    setDialogState(
-                                      () => isLoading = false,
-                                    );
-                                    _showSnackBar(
-                                      context,
-                                      'Error: ${e.toString()}',
-                                      AdminColors.danger,
-                                    );
-                                  }
-                                },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AdminColors.primaryBlue,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 14,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                          child: isLoading
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : Text(
-                                  'Add / Ajouter',
-                                  style: GoogleFonts.inter(
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                  isDense: true,
+                ),
               ),
             ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ══════════════════════════════════════════
-  // EDIT DOCTOR DIALOG / DIALOGUE MODIFIER
-  // ══════════════════════════════════════════
-  void _showEditDoctorDialog(
-    BuildContext context,
-    AdminService service,
-    String docId,
-    Map<String, dynamic> data,
-  ) {
-    final specialtyCtrl = TextEditingController(
-      text: data['specialty'] ?? '',
-    );
-    final phoneCtrl = TextEditingController(
-      text: data['phone'] ?? '',
-    );
-    String selectedStatus = data['status'] ?? 'active';
-
-    showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Container(
-            width: 440,
-            padding: const EdgeInsets.all(28),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Title / Titre
-                Text(
-                  'Edit Doctor / Modifier Médecin',
-                  style: GoogleFonts.inter(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: AdminColors.textPrimary,
-                  ),
+            const SizedBox(width: 16),
+            Text(
+              AdminDoctorsStrings.filterStatus,
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AdminColors.textSecondary,
+              ),
+            ),
+            const SizedBox(width: 8),
+            DropdownButton<String>(
+              value: _statusFilter,
+              items: [
+                DropdownMenuItem(
+                  value: '',
+                  child: Text(AdminDoctorsStrings.filterAll),
                 ),
-
-                const SizedBox(height: 20),
-
-                // Specialty / Spécialité
-                _buildFormField(
-                  label: 'Specialty / Spécialité',
-                  controller: specialtyCtrl,
-                  icon: Icons.medical_services_outlined,
+                DropdownMenuItem(
+                  value: 'active',
+                  child: Text(AdminDoctorsStrings.statusActive),
                 ),
-
-                const SizedBox(height: 14),
-
-                // Phone / Téléphone
-                _buildFormField(
-                  label: 'Phone / Téléphone',
-                  controller: phoneCtrl,
-                  icon: Icons.phone_outlined,
+                DropdownMenuItem(
+                  value: 'leave',
+                  child: Text(AdminDoctorsStrings.statusLeave),
                 ),
-
-                const SizedBox(height: 14),
-
-                // Status Dropdown / Menu déroulant statut
-                Text(
-                  'Status / Statut',
-                  style: GoogleFonts.inter(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: AdminColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                DropdownButtonFormField<String>(
-                  value: selectedStatus,
-                  onChanged: (value) => setDialogState(
-                    () => selectedStatus = value!,
-                  ),
-                  decoration: InputDecoration(
-                    filled: true,
-                    fillColor: AdminColors.pageBg,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(color: AdminColors.border),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(color: AdminColors.border),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 12),
-                  ),
-                  items: [
-                    DropdownMenuItem(value: 'active', child: Text('Active')),
-                    DropdownMenuItem(
-                        value: 'leave', child: Text('On Leave / En congé')),
-                    DropdownMenuItem(
-                        value: 'inactive', child: Text('Inactive')),
-                  ],
-                ),
-
-                const SizedBox(height: 24),
-
-                // ── Buttons
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.pop(ctx),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 14,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                        child: Text(
-                          'Cancel / Annuler',
-                          style: GoogleFonts.inter(),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () async {
-                          await service.updateDoctor(
-                            docId,
-                            {
-                              'specialty': specialtyCtrl.text,
-                              'phone': phoneCtrl.text,
-                              'status': selectedStatus,
-                            },
-                          );
-                          if (ctx.mounted) {
-                            Navigator.pop(ctx);
-                            _showSnackBar(
-                              context,
-                              '✅ Updated successfully!'
-                              ' / Mis à jour!',
-                              AdminColors.success,
-                            );
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AdminColors.primaryBlue,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 14,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                        child: Text(
-                          'Save / Sauvegarder',
-                          style: GoogleFonts.inter(
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+                DropdownMenuItem(
+                  value: 'inactive',
+                  child: Text(AdminDoctorsStrings.statusInactive),
                 ),
               ],
+              onChanged: (v) => setState(() => _statusFilter = v ?? ''),
             ),
-          ),
+          ],
         ),
       ),
     );
   }
 
-  // ── Form Field Builder
-  Widget _buildFormField({
-    required String label,
-    required TextEditingController controller,
-    required IconData icon,
-    TextInputType inputType = TextInputType.text,
-    bool isPassword = false,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: GoogleFonts.inter(
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
-            color: AdminColors.textPrimary,
-          ),
+  Widget _errorCard(String message) {
+    return Card(
+      color: AdminColors.dangerBg,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Row(
+          children: [
+            const Icon(Icons.error_outline, color: AdminColors.danger),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                '${AdminDoctorsStrings.errorPrefix}: $message\n'
+                'Firestore index may be required for role + createdAt.',
+                style: GoogleFonts.inter(
+                  color: AdminColors.danger,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 6),
-        TextField(
-          controller: controller,
-          keyboardType: inputType,
-          obscureText: isPassword,
-          style: GoogleFonts.inter(fontSize: 14),
-          decoration: InputDecoration(
-            prefixIcon: Icon(icon, size: 18),
-            filled: true,
-            fillColor: AdminColors.pageBg,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: AdminColors.border),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: AdminColors.border),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide:
-                  const BorderSide(color: AdminColors.primaryBlue, width: 1.5),
-            ),
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ── Show SnackBar
-  void _showSnackBar(BuildContext context, String message, Color color) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: color,
-        duration: const Duration(seconds: 3),
       ),
     );
   }
 }
-
-// ══════════════════════════════════════════════
-// NURSES SCREEN / ÉCRAN DES INFIRMIÈRES
-// ══════════════════════════════════════════════

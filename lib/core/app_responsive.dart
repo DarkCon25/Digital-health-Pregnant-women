@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+/// Breakpoints + padding helpers. For sidebar + main shells that must not
+/// overflow on narrow windows, use [ResponsiveDashboardShell] in
+/// `lib/widgets/responsive_dashboard_shell.dart`.
 class AppResponsive {
   static bool isMobile(BuildContext context) =>
       MediaQuery.of(context).size.width < 768;

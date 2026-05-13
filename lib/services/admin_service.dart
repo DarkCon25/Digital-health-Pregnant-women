@@ -1,6 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/foundation.dart';
+import '../firebase_options.dart';
 
 // ════════════════════════════════════════════════════════════════
 // HerCare - Admin Service (Complete & Secure)
@@ -10,16 +13,34 @@ import 'package:flutter/foundation.dart';
 class AdminService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  String? _lastError;
+  String? get lastError => _lastError;
 
   // Secondary Auth Instance for creating users without logout
-  late final FirebaseAuth _secondaryAuth;
+  static const String _secondaryAppName = 'hercare-admin-auth';
+  FirebaseAuth? _secondaryAuth;
 
-  AdminService() {
+  AdminService();
+
+  Future<FirebaseAuth> _getSecondaryAuth() async {
     try {
-      _secondaryAuth = FirebaseAuth.instanceFor(app: _auth.app);
+      if (_secondaryAuth != null) return _secondaryAuth!;
+
+      FirebaseApp app;
+      try {
+        app = Firebase.app(_secondaryAppName);
+      } catch (_) {
+        app = await Firebase.initializeApp(
+          name: _secondaryAppName,
+          options: DefaultFirebaseOptions.currentPlatform,
+        );
+      }
+
+      _secondaryAuth = FirebaseAuth.instanceFor(app: app);
+      return _secondaryAuth!;
     } catch (e) {
-      _secondaryAuth = _auth;
-      debugPrint('⚠️ Secondary Auth not available, using primary');
+      debugPrint('❌ Failed to initialize secondary auth: $e');
+      rethrow;
     }
   }
 
@@ -84,7 +105,6 @@ class AdminService {
     return _db
         .collection('users')
         .where('role', isEqualTo: 'doctor')
-        .orderBy('createdAt', descending: true)
         .snapshots();
   }
 
@@ -97,8 +117,10 @@ class AdminService {
     required String specialty,
     String? profileImage,
   }) async {
+    _lastError = null;
     try {
-      final credential = await _secondaryAuth.createUserWithEmailAndPassword(
+      final secondaryAuth = await _getSecondaryAuth();
+      final credential = await secondaryAuth.createUserWithEmailAndPassword(
         email: email.trim(),
         password: password.trim(),
       );
@@ -121,12 +143,17 @@ class AdminService {
         'createdAt': FieldValue.serverTimestamp(),
       });
 
-      await _secondaryAuth.signOut();
+      await secondaryAuth.signOut();
 
       debugPrint('✅ Doctor created successfully: $uid');
 
       return uid;
+    } on FirebaseAuthException catch (e) {
+      _lastError = e.code;
+      debugPrint('❌ Error adding doctor (auth): ${e.code} - ${e.message}');
+      return null;
     } catch (e) {
+      _lastError = e.toString();
       debugPrint('❌ Error adding doctor: $e');
       return null;
     }
@@ -152,9 +179,24 @@ class AdminService {
 
   Future<bool> deleteDoctor(String uid) async {
     try {
-      await _db.collection('users').doc(uid).delete();
+      final assigned = await _db
+          .collection('users')
+          .where('assignedDoctorId', isEqualTo: uid)
+          .limit(500)
+          .get();
 
-      debugPrint('✅ Doctor deleted: $uid');
+      final batch = _db.batch();
+      for (final doc in assigned.docs) {
+        batch.update(doc.reference, {
+          'assignedDoctorId': FieldValue.delete(),
+          'assignedDoctorName': FieldValue.delete(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
+      batch.delete(_db.collection('users').doc(uid));
+      await batch.commit();
+
+      debugPrint('✅ Doctor deleted and assignments cleared: $uid');
 
       return true;
     } catch (e) {
@@ -190,7 +232,6 @@ class AdminService {
     return _db
         .collection('users')
         .where('role', isEqualTo: 'nurse')
-        .orderBy('createdAt', descending: true)
         .snapshots();
   }
 
@@ -204,8 +245,10 @@ class AdminService {
     required String shift,
     String? profileImage,
   }) async {
+    _lastError = null;
     try {
-      final credential = await _secondaryAuth.createUserWithEmailAndPassword(
+      final secondaryAuth = await _getSecondaryAuth();
+      final credential = await secondaryAuth.createUserWithEmailAndPassword(
         email: email.trim(),
         password: password.trim(),
       );
@@ -227,14 +270,63 @@ class AdminService {
         'createdAt': FieldValue.serverTimestamp(),
       });
 
-      await _secondaryAuth.signOut();
+      await secondaryAuth.signOut();
 
       debugPrint('✅ Nurse created successfully: $uid');
 
       return uid;
+    } on FirebaseAuthException catch (e) {
+      _lastError = e.code;
+      debugPrint('❌ Error adding nurse (auth): ${e.code} - ${e.message}');
+      return null;
     } catch (e) {
+      _lastError = e.toString();
       debugPrint('❌ Error adding nurse: $e');
       return null;
+    }
+  }
+
+  Future<bool> sendPasswordResetForUser(String email) async {
+    _lastError = null;
+    try {
+      await _auth.sendPasswordResetEmail(email: email.trim());
+      return true;
+    } on FirebaseAuthException catch (e) {
+      _lastError = e.code;
+      debugPrint(
+        '❌ Error sending password reset (auth): ${e.code} - ${e.message}',
+      );
+      return false;
+    } catch (e) {
+      _lastError = e.toString();
+      debugPrint('❌ Error sending password reset: $e');
+      return false;
+    }
+  }
+
+  Future<bool> setUserPasswordByAdmin({
+    required String uid,
+    required String newPassword,
+  }) async {
+    _lastError = null;
+    try {
+      final callable =
+          FirebaseFunctions.instance.httpsCallable('adminSetUserPassword');
+      await callable.call({
+        'uid': uid.trim(),
+        'newPassword': newPassword,
+      });
+      return true;
+    } on FirebaseFunctionsException catch (e) {
+      _lastError = e.code;
+      debugPrint(
+        '❌ Error setting user password (functions): ${e.code} - ${e.message}',
+      );
+      return false;
+    } catch (e) {
+      _lastError = e.toString();
+      debugPrint('❌ Error setting user password: $e');
+      return false;
     }
   }
 
@@ -309,8 +401,30 @@ class AdminService {
     return _db
         .collection('users')
         .where('role', isEqualTo: 'patient')
+        .snapshots();
+  }
+
+  Stream<QuerySnapshot> getAllUsersStream() {
+    return _db
+        .collection('users')
         .orderBy('createdAt', descending: true)
         .snapshots();
+  }
+
+  Future<bool> updateUserRole({
+    required String uid,
+    required String role,
+  }) async {
+    try {
+      await _db.collection('users').doc(uid).update({
+        'role': role,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      return true;
+    } catch (e) {
+      debugPrint('❌ Error updating user role for $uid: $e');
+      return false;
+    }
   }
 
   Future<bool> updatePatient(
@@ -367,14 +481,45 @@ class AdminService {
     required String doctorName,
   }) async {
     try {
-      await _db.collection('users').doc(patientId).update({
-        'assignedDoctorId': doctorId,
-        'assignedDoctorName': doctorName,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+      await _db.runTransaction((transaction) async {
+        final patientRef = _db.collection('users').doc(patientId);
+        final newDoctorRef = _db.collection('users').doc(doctorId);
 
-      await _db.collection('users').doc(doctorId).update({
-        'patients': FieldValue.increment(1),
+        final patientSnap = await transaction.get(patientRef);
+        if (!patientSnap.exists) {
+          throw Exception('Patient document not found');
+        }
+        final pdata = patientSnap.data()!;
+        if (pdata['role'] != 'patient') {
+          throw Exception('Target user is not a patient');
+        }
+
+        final oldId = pdata['assignedDoctorId'] as String?;
+        if (oldId == doctorId) {
+          return;
+        }
+
+        if (oldId != null && oldId.isNotEmpty) {
+          final oldDoctorRef = _db.collection('users').doc(oldId);
+          final oldDoctorSnap = await transaction.get(oldDoctorRef);
+          if (oldDoctorSnap.exists) {
+            transaction.update(oldDoctorRef, {
+              'patients': FieldValue.increment(-1),
+              'updatedAt': FieldValue.serverTimestamp(),
+            });
+          }
+        }
+
+        transaction.update(patientRef, {
+          'assignedDoctorId': doctorId,
+          'assignedDoctorName': doctorName,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+
+        transaction.update(newDoctorRef, {
+          'patients': FieldValue.increment(1),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
       });
 
       debugPrint(
@@ -386,6 +531,58 @@ class AdminService {
       debugPrint('❌ Error assigning doctor: $e');
       return false;
     }
+  }
+
+  /// Removes the patient’s attending doctor and decrements that doctor’s [patients] counter.
+  Future<bool> unassignDoctorFromPatient(String patientId) async {
+    try {
+      await _db.runTransaction((transaction) async {
+        final patientRef = _db.collection('users').doc(patientId);
+        final patientSnap = await transaction.get(patientRef);
+        if (!patientSnap.exists) return;
+        final oldId = patientSnap.data()!['assignedDoctorId'] as String?;
+        if (oldId == null || oldId.isEmpty) return;
+
+        final doctorRef = _db.collection('users').doc(oldId);
+        final doctorSnap = await transaction.get(doctorRef);
+        if (doctorSnap.exists) {
+          transaction.update(doctorRef, {
+            'patients': FieldValue.increment(-1),
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+        }
+
+        transaction.update(patientRef, {
+          'assignedDoctorId': FieldValue.delete(),
+          'assignedDoctorName': FieldValue.delete(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      });
+      return true;
+    } catch (e) {
+      debugPrint('❌ Error unassigning doctor: $e');
+      return false;
+    }
+  }
+
+  Future<bool> setDoctorAvailability({
+    required String doctorId,
+    required bool isAvailable,
+  }) async {
+    try {
+      await _db.collection('users').doc(doctorId).update({
+        'isAvailable': isAvailable,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      return true;
+    } catch (e) {
+      debugPrint('❌ Error updating doctor availability: $e');
+      return false;
+    }
+  }
+
+  Stream<DocumentSnapshot> watchDoctor(String uid) {
+    return _db.collection('users').doc(uid).snapshots();
   }
 
   Future<bool> deletePatient(String uid) async {
@@ -444,7 +641,15 @@ class AdminService {
     return _db
         .collection('babies')
         .where('motherId', isEqualTo: motherId)
-        .orderBy('birthDate', descending: true)
+        .snapshots();
+  }
+
+  Stream<QuerySnapshot> getAssignedPatientsStream(String doctorId) {
+    return _db
+        .collection('users')
+        .where('role', isEqualTo: 'patient')
+        .where('assignedDoctorId', isEqualTo: doctorId)
+        .orderBy('createdAt', descending: true)
         .snapshots();
   }
 
@@ -532,5 +737,126 @@ class AdminService {
       debugPrint('❌ Error deleting room: $e');
       return false;
     }
+  }
+
+  Stream<QuerySnapshot> getContactsStream() {
+    return _db
+        .collection('users')
+        .where('role', whereIn: ['doctor', 'nurse', 'patient'])
+        .snapshots();
+  }
+
+  Stream<QuerySnapshot> getMessagesStream(String contactId) {
+    final myUid = _auth.currentUser?.uid;
+    if (myUid == null) {
+      return const Stream.empty();
+    }
+    final ids = [myUid, contactId]..sort();
+    final chatId = '${ids[0]}_${ids[1]}';
+    return _db
+        .collection('messages')
+        .where('chatId', isEqualTo: chatId)
+        .snapshots();
+  }
+
+  Future<void> sendMessage(String contactId, String text) async {
+    final myUid = _auth.currentUser?.uid;
+    if (myUid == null) return;
+    final ids = [myUid, contactId]..sort();
+    final chatId = '${ids[0]}_${ids[1]}';
+
+    await _db.collection('messages').add({
+      'senderId': myUid,
+      'receiverId': contactId,
+      'chatId': chatId,
+      'participants': [myUid, contactId],
+      'text': text,
+      'seen': false,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Stream<int> getUnreadCountStream(String contactId) {
+    final myUid = _auth.currentUser?.uid;
+    if (myUid == null) return Stream<int>.value(0);
+    return _db
+        .collection('messages')
+        .where('senderId', isEqualTo: contactId)
+        .where('receiverId', isEqualTo: myUid)
+        .where('seen', isEqualTo: false)
+        .snapshots()
+        .map((s) => s.docs.length);
+  }
+
+  Future<void> markMessagesAsRead(String contactId) async {
+    final myUid = _auth.currentUser?.uid;
+    if (myUid == null) return;
+    final q = await _db
+        .collection('messages')
+        .where('senderId', isEqualTo: contactId)
+        .where('receiverId', isEqualTo: myUid)
+        .where('seen', isEqualTo: false)
+        .get();
+    if (q.docs.isEmpty) return;
+    final batch = _db.batch();
+    for (final d in q.docs) {
+      batch.update(d.reference, {'seen': true});
+    }
+    await batch.commit();
+  }
+
+  Stream<int> getTotalUnreadMessagesStream() {
+    final myUid = _auth.currentUser?.uid;
+    if (myUid == null) return Stream<int>.value(0);
+    return _db
+        .collection('messages')
+        .where('receiverId', isEqualTo: myUid)
+        .where('seen', isEqualTo: false)
+        .snapshots()
+        .map((s) => s.docs.length);
+  }
+
+  Stream<QuerySnapshot> getEmergencyAlertsStream() {
+    return _db
+        .collection('emergency_alerts')
+        .orderBy('alertTime', descending: true)
+        .snapshots();
+  }
+
+  Future<void> resolveEmergencyAlert(String alertId) async {
+    await _db.collection('emergency_alerts').doc(alertId).update({
+      'status': 'resolved',
+      'resolvedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Future<void> notifyDoctorForAlert(String alertId) async {
+    await _db.collection('emergency_alerts').doc(alertId).update({
+      'doctorNotified': true,
+      'doctorNotifiedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Future<void> callNurseForAlert(String alertId) async {
+    await _db.collection('emergency_alerts').doc(alertId).update({
+      'nurseCalled': true,
+      'nurseCalledAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Stream<QuerySnapshot> getPregnancyMonitoringStream(String patientId) {
+    return _db
+        .collection('pregnancy_monitoring')
+        .where('patientId', isEqualTo: patientId)
+        .orderBy('createdAt', descending: true)
+        .snapshots();
+  }
+
+  Stream<QuerySnapshot> getMedicalRecordsStream(String patientId) {
+    return _db
+        .collection('medical_records')
+        .where('patientId', isEqualTo: patientId)
+        .orderBy('createdAt', descending: true)
+        .snapshots();
   }
 }

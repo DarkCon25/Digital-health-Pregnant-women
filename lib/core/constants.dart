@@ -19,6 +19,17 @@ class AppConstants {
 
   // Firestore Collections
   static const String usersCollection = 'users';
+  static const String medicalFilesCollection = 'medical_files';
+  static const String consultationsSubcollection = 'consultations';
+  static const String emergencyAlertsCollection = 'emergency_alerts';
+  static const String appointmentsCollection = 'appointments';
+  static const String messagesCollection = 'messages';
+  static const String roomsCollection = 'rooms';
+  static const String labTestsCollection = 'lab_tests';
+  static const String ultrasoundImagesCollection = 'ultrasound_images';
+  static const String icuCasesCollection = 'icu_cases';
+  static const String notificationsCollection = 'notifications';
+  static const String medicationSchedulesCollection = 'medication_schedules';
 
   // User Roles
   static const String roleAdmin = 'admin';

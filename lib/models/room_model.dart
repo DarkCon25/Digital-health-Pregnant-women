@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 // ============================================
 // HerCare - Room Model
 // Modèle Chambre
@@ -34,7 +36,9 @@ class RoomModel {
       capacity: map['capacity'] ?? 1,
       status: map['status'] ?? 'available',
       patientName: map['patientName'],
-      createdAt: map['createdAt']?.toDate(),
+      createdAt: map['createdAt'] is Timestamp
+          ? (map['createdAt'] as Timestamp).toDate()
+          : null,
     );
   }
 

@@ -6,6 +6,7 @@ import '../../core/admin_colors.dart';
 import '../../services/admin_service.dart';
 import '../../viewmodels/admin/admin_dashboard_viewmodel.dart';
 import '../../widgets/admin/data_table_widget.dart';
+import 'patient_profile_screen.dart';
 
 // ════════════════════════════════════════════════════════════════
 // HerCare - Patients Screen
@@ -39,9 +40,27 @@ class PatientsScreen extends StatelessWidget {
           StreamBuilder<QuerySnapshot>(
             stream: service.getPatientsStream(),
             builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return Center(
+                  child: Text(
+                    'Error loading patients: ${snapshot.error}',
+                    style: GoogleFonts.poppins(color: AdminColors.danger),
+                  ),
+                );
+              }
+
               final loading =
                   snapshot.connectionState == ConnectionState.waiting;
-              final docs = snapshot.data?.docs ?? [];
+              final docs = [...(snapshot.data?.docs ?? [])]
+                ..sort((a, b) {
+                  final aTs =
+                      (a.data() as Map<String, dynamic>)['createdAt'] as Timestamp?;
+                  final bTs =
+                      (b.data() as Map<String, dynamic>)['createdAt'] as Timestamp?;
+                  final aMs = aTs?.millisecondsSinceEpoch ?? 0;
+                  final bMs = bTs?.millisecondsSinceEpoch ?? 0;
+                  return bMs.compareTo(aMs);
+                });
 
               return AdminDataTable(
                 title: 'Patientes (${docs.length})',
@@ -217,14 +236,57 @@ class PatientsScreen extends StatelessWidget {
 
                     // Column 6 - Actions (edit / delete)
                     // Colonne 6 - Actions (modifier / supprimer)
-                    TableActions(
-                      onEdit: () => _showEditPatientDialog(
-                        context,
-                        service,
-                        doc.id,
-                        data,
-                      ),
-                      onDelete: () => service.deletePatient(doc.id),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          tooltip: 'View',
+                          icon: const Icon(Icons.visibility_outlined, size: 18),
+                          onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => PatientProfileScreen(patientId: doc.id),
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Edit',
+                          icon: const Icon(Icons.edit_outlined, size: 18),
+                          onPressed: () => _showEditPatientDialog(
+                            context,
+                            service,
+                            doc.id,
+                            data,
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Delete',
+                          icon: const Icon(Icons.delete_outline, size: 18, color: AdminColors.danger),
+                          onPressed: () => service.deletePatient(doc.id),
+                        ),
+                        IconButton(
+                          tooltip: 'Print',
+                          icon: const Icon(Icons.print_outlined, size: 18),
+                          onPressed: () => _snack(context, 'Print request queued', AdminColors.primaryBlue),
+                        ),
+                        IconButton(
+                          tooltip: 'Emergency',
+                          icon: const Icon(Icons.emergency_outlined, size: 18, color: AdminColors.danger),
+                          onPressed: () async {
+                            await FirebaseFirestore.instance.collection('emergency_alerts').add({
+                              'patientId': doc.id,
+                              'patientName': name,
+                              'roomNumber': data['roomNumber'] ?? '-',
+                              'severity': 'high',
+                              'status': 'open',
+                              'alertTime': FieldValue.serverTimestamp(),
+                            });
+                            if (context.mounted) {
+                              _snack(context, 'Emergency alert sent', AdminColors.danger);
+                            }
+                          },
+                        ),
+                      ],
                     ),
                   ];
                 }).toList(),
@@ -973,7 +1035,16 @@ class PatientsScreen extends StatelessWidget {
                     );
                   }
 
-                  final babies = snapshot.data?.docs ?? [];
+                  final babies = [...(snapshot.data?.docs ?? [])]
+                    ..sort((a, b) {
+                      final aTs =
+                          (a.data() as Map<String, dynamic>)['birthDate'] as Timestamp?;
+                      final bTs =
+                          (b.data() as Map<String, dynamic>)['birthDate'] as Timestamp?;
+                      final aMs = aTs?.millisecondsSinceEpoch ?? 0;
+                      final bMs = bTs?.millisecondsSinceEpoch ?? 0;
+                      return bMs.compareTo(aMs);
+                    });
 
                   if (babies.isEmpty) {
                     return Center(

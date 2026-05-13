@@ -80,6 +80,19 @@ class _LoginScreenState extends State<LoginScreen>
       curve: Curves.easeOutCubic,
     ));
     _panelController.forward();
+    _tryRestoreAuthenticatedSession();
+  }
+
+  Future<void> _tryRestoreAuthenticatedSession() async {
+    final vm = context.read<AuthViewModel>();
+    await vm.loadCurrentUser();
+    if (!mounted) return;
+
+    final user = vm.currentUser;
+    if (user == null) return;
+
+    final targetRoute = AppRoutes.getHomePageRoute(user.role);
+    Navigator.of(context).pushReplacementNamed(targetRoute);
   }
 
   @override
@@ -135,7 +148,10 @@ class _LoginScreenState extends State<LoginScreen>
       password: _loginPasswordController.text,
     );
     if (success && mounted) {
-      Navigator.of(context).pushReplacementNamed(AppRoutes.placeholder);
+      final targetRoute = AppRoutes.getHomePageRoute(
+        vm.currentUser?.role ?? 'patient',
+      );
+      Navigator.of(context).pushReplacementNamed(targetRoute);
     }
   }
 
@@ -157,7 +173,10 @@ class _LoginScreenState extends State<LoginScreen>
       dateOfBirth: _selectedDate,
     );
     if (success && mounted) {
-      Navigator.of(context).pushReplacementNamed(AppRoutes.placeholder);
+      final targetRoute = AppRoutes.getHomePageRoute(
+        vm.currentUser?.role ?? 'patient',
+      );
+      Navigator.of(context).pushReplacementNamed(targetRoute);
     }
   }
 
@@ -166,7 +185,10 @@ class _LoginScreenState extends State<LoginScreen>
     final vm = context.read<AuthViewModel>();
     final success = await vm.signInWithGoogle();
     if (success && mounted) {
-      Navigator.of(context).pushReplacementNamed(AppRoutes.placeholder);
+      final targetRoute = AppRoutes.getHomePageRoute(
+        vm.currentUser?.role ?? 'patient',
+      );
+      Navigator.of(context).pushReplacementNamed(targetRoute);
     }
   }
 
@@ -527,7 +549,7 @@ class _LoginScreenState extends State<LoginScreen>
             textAlign: TextAlign.center,
             style: GoogleFonts.inter(
               fontSize: 11,
-              color: AppColors.accentPink.withOpacity(0.8),
+              color: AppColors.accentPink.withValues(alpha: 0.8),
               height: 1.5,
             ),
           ),
@@ -888,7 +910,7 @@ class _LoginScreenState extends State<LoginScreen>
         ),
         const SizedBox(height: 6),
         DropdownButtonFormField<String>(
-          value: _selectedWilaya,
+          initialValue: _selectedWilaya,
           onChanged: (val) => setState(() => _selectedWilaya = val),
           hint: Row(
             children: [
@@ -946,7 +968,7 @@ class _LoginScreenState extends State<LoginScreen>
           BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
             child: Container(
-              color: Colors.black.withOpacity(0.35),
+              color: Colors.black.withValues(alpha: 0.35),
             ),
           ),
 
@@ -968,7 +990,7 @@ class _LoginScreenState extends State<LoginScreen>
                       borderRadius: BorderRadius.circular(24),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.15),
+                          color: Colors.black.withValues(alpha: 0.15),
                           blurRadius: 40,
                           offset: const Offset(0, 10),
                         ),
@@ -1149,7 +1171,7 @@ class _LoginScreenState extends State<LoginScreen>
       borderRadius: BorderRadius.circular(20),
       boxShadow: [
         BoxShadow(
-          color: Colors.black.withOpacity(0.06),
+          color: Colors.black.withValues(alpha: 0.06),
           blurRadius: 24,
           offset: const Offset(0, 4),
         ),
@@ -1224,9 +1246,9 @@ class _MobileHeader extends StatelessWidget {
           AppLogo(
             size: 90,
             isCircle: true,
-            borderColor: Colors.white.withOpacity(0.4),
+            borderColor: Colors.white.withValues(alpha: 0.4),
             borderWidth: 2,
-            backgroundColor: Colors.white.withOpacity(0.1),
+            backgroundColor: Colors.white.withValues(alpha: 0.1),
           ),
           const SizedBox(height: 10),
           Text(

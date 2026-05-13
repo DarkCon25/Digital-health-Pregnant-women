@@ -51,13 +51,22 @@ class UserModel {
       role: map['role'] ?? 'patient',
       phone: map['phone'],
       wilaya: map['wilaya'],
-      dateOfBirth: map['dateOfBirth'] != null
-          ? (map['dateOfBirth'] as Timestamp).toDate()
-          : null,
-      createdAt: map['createdAt'] != null
-          ? (map['createdAt'] as Timestamp).toDate()
-          : DateTime.now(),
+      dateOfBirth: _parseDateValue(map['dateOfBirth']),
+      createdAt: _parseDateValue(map['createdAt']) ?? DateTime.now(),
     );
+  }
+
+  static DateTime? _parseDateValue(dynamic value) {
+    if (value == null) return null;
+    if (value is Timestamp) return value.toDate();
+    if (value is DateTime) return value;
+    if (value is int) {
+      return DateTime.fromMillisecondsSinceEpoch(value);
+    }
+    if (value is String) {
+      return DateTime.tryParse(value);
+    }
+    return null;
   }
 
   UserModel copyWith({

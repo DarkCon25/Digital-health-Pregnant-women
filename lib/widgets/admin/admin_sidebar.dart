@@ -9,6 +9,7 @@ enum AdminPage {
   doctors,
   nurses,
   patients,
+  babies,
   rooms,
   messages,
   accounts,
@@ -64,6 +65,7 @@ class AdminSidebar extends StatelessWidget {
                       AdminPage.nurses),
                   _item(Icons.people_outline_rounded, AppStrings.patients,
                       AdminPage.patients),
+                  _item(Icons.child_care, 'Babies / Bébés', AdminPage.babies),
                   _item(Icons.bed_outlined, AppStrings.rooms, AdminPage.rooms),
                   const SizedBox(height: 4),
                   _section(AppStrings.communication),
@@ -72,6 +74,7 @@ class AdminSidebar extends StatelessWidget {
                     AppStrings.messages,
                     AdminPage.messages,
                     badge: unreadMessages,
+                    dotOnly: true,
                   ),
                   _item(
                     Icons.notifications_outlined,
@@ -156,12 +159,14 @@ class AdminSidebar extends StatelessWidget {
     String label,
     AdminPage page, {
     int badge = 0,
+    bool dotOnly = false,
   }) {
     return _SidebarTile(
       icon: icon,
       label: label,
       isActive: currentPage == page,
       badge: badge,
+      dotOnly: dotOnly,
       onTap: () => onPageChanged(page),
     );
   }
@@ -190,6 +195,7 @@ class _SidebarTile extends StatefulWidget {
   final String label;
   final bool isActive;
   final int badge;
+  final bool dotOnly;
   final VoidCallback onTap;
   final bool isLogout;
 
@@ -198,6 +204,7 @@ class _SidebarTile extends StatefulWidget {
     required this.label,
     required this.isActive,
     required this.badge,
+    this.dotOnly = false,
     required this.onTap,
     this.isLogout = false,
   });
@@ -251,7 +258,16 @@ class _SidebarTileState extends State<_SidebarTile> {
                   ),
                 ),
               ),
-              if (widget.badge > 0)
+              if (widget.badge > 0 && widget.dotOnly)
+                Container(
+                  width: 10,
+                  height: 10,
+                  decoration: const BoxDecoration(
+                    color: AdminColors.danger,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              if (widget.badge > 0 && !widget.dotOnly)
                 Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 7, vertical: 2),

@@ -9,12 +9,14 @@ import '../../viewmodels/admin/admin_dashboard_viewmodel.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import '../../widgets/admin/admin_sidebar.dart';
 import '../../widgets/admin/admin_topbar.dart';
+import '../../widgets/responsive_dashboard_shell.dart';
 import '../../widgets/admin/chart_widget.dart';
 import '../../widgets/admin/data_table_widget.dart';
 import '../../widgets/admin/stats_card.dart';
 import 'doctors_screen.dart';
 import 'nurses_screen.dart';
 import 'patients_screen.dart';
+import 'babies_screen.dart';
 import 'rooms_screen.dart';
 import 'accounts_screen.dart';
 import 'settings_screen.dart';
@@ -51,6 +53,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         return 'Nurses / Infirmières';
       case AdminPage.patients:
         return 'Patients / Patientes';
+      case AdminPage.babies:
+        return 'Babies / Bébés';
       case AdminPage.rooms:
         return 'Rooms / Chambres';
       case AdminPage.messages:
@@ -140,7 +144,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     if (confirmed == true && mounted) {
       await context.read<AuthViewModel>().signOut();
       if (mounted) {
-        Navigator.of(context).pushReplacementNamed(AppRoutes.login);
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          AppRoutes.login,
+          (_) => false,
+        );
       }
     }
   }
@@ -151,35 +158,30 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       create: (_) => AdminDashboardViewModel(),
       child: Scaffold(
         backgroundColor: AdminColors.pageBg,
-        body: Row(
-          children: [
-            // ────────────────────────────────────────
-            // LEFT SIDEBAR / BARRE LATÉRALE GAUCHE
-            // ────────────────────────────────────────
-            AdminSidebar(
-              currentPage: _currentPage,
-              onPageChanged: (page) => setState(
-                () => _currentPage = page,
+        body: StreamBuilder<int>(
+          stream:
+              context.read<AdminDashboardViewModel>().service.getTotalUnreadMessagesStream(),
+          builder: (context, snap) {
+            final unreadMessages = snap.data ?? 0;
+            return ResponsiveDashboardShell(
+              sidebarWidth: 255,
+              minMainWidth: 640,
+              sidebar: AdminSidebar(
+                currentPage: _currentPage,
+                unreadMessages: unreadMessages,
+                onPageChanged: (page) => setState(
+                  () => _currentPage = page,
+                ),
+                onLogout: _handleLogout,
               ),
-              onLogout: _handleLogout,
-            ),
-
-            // ────────────────────────────────────────
-            // MAIN CONTENT AREA / ZONE DE CONTENU PRINCIPALE
-            // ────────────────────────────────────────
-            Expanded(
-              child: Column(
+              main: Column(
                 children: [
-                  // Top navigation bar / Barre de navigation supérieure
                   AdminTopbar(
                     pageTitle: _getPageTitle(_currentPage),
                     onNotificationTap: () => setState(
                       () => _currentPage = AdminPage.notifications,
                     ),
                   ),
-
-                  // Dynamic page content with smooth transition
-                  // Contenu de page dynamique avec transition fluide
                   Expanded(
                     child: AnimatedSwitcher(
                       duration: const Duration(milliseconds: 220),
@@ -195,8 +197,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   ),
                 ],
               ),
-            ),
-          ],
+            );
+          },
         ),
       ),
     );
@@ -214,6 +216,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         return const NursesScreen();
       case AdminPage.patients:
         return const PatientsScreen();
+      case AdminPage.babies:
+        return const BabiesScreen();
       case AdminPage.rooms:
         return const RoomsScreen();
       case AdminPage.messages:
@@ -413,6 +417,7 @@ class _StatsGrid extends StatelessWidget {
               'patients': 0,
               'doctors': 0,
               'nurses': 0,
+              'babies': 0,
               'rooms': 0,
               'availableRooms': 0,
             };
@@ -420,7 +425,7 @@ class _StatsGrid extends StatelessWidget {
         return LayoutBuilder(
           builder: (context, constraints) {
             // Responsive column count / Nombre de colonnes réactif
-            int columns = 4;
+            int columns = 5;
             if (constraints.maxWidth < 900) columns = 2;
             if (constraints.maxWidth < 600) columns = 1;
 
@@ -472,6 +477,19 @@ class _StatsGrid extends StatelessWidget {
                 ),
 
                 // ──────────────────────────────────
+                // BABIES CARD / CARTE BÉBÉS
+                // ──────────────────────────────────
+                StatsCard(
+                  title: 'Babies / Bébés',
+                  value: stats['babies'].toString(),
+                  subtitle: 'Registered babies / Enregistrés',
+                  icon: Icons.child_care,
+                  color: const Color(0xFFFF6B9D),
+                  changePercent: 8.3,
+                  isIncrease: true,
+                ),
+
+                // ──────────────────────────────────
                 // ROOMS CARD / CARTE CHAMBRES
                 // ──────────────────────────────────
                 StatsCard(
@@ -516,9 +534,9 @@ class _ChartsRow extends StatelessWidget {
               Expanded(
                 flex: 3,
                 child: LineChartWidget(
-                  title: 'Monthly Patients Statistics / '
-                      'Statistiques mensuelles',
-                  data: vm.monthlyData,
+                  title: 'Monthly Patients & Babies / '
+                      'Patientes et bébés mensuels',
+                  data: vm.monthlyPatients,
                   labels: vm.monthLabels,
                 ),
               ),
@@ -534,18 +552,23 @@ class _ChartsRow extends StatelessWidget {
                   data: [
                     PieChartData(
                       label: 'Patients',
-                      value: 60,
+                      value: (vm.stats['patients'] ?? 0).toDouble(),
                       color: AdminColors.pink,
                     ),
                     PieChartData(
                       label: 'Doctors / Médecins',
-                      value: 20,
+                      value: (vm.stats['doctors'] ?? 0).toDouble(),
                       color: AdminColors.primaryBlue,
                     ),
                     PieChartData(
                       label: 'Nurses / Infirmières',
-                      value: 20,
+                      value: (vm.stats['nurses'] ?? 0).toDouble(),
                       color: AdminColors.greenCard,
+                    ),
+                    PieChartData(
+                      label: 'Babies / Bébés',
+                      value: (vm.stats['babies'] ?? 0).toDouble(),
+                      color: const Color(0xFFFF6B9D),
                     ),
                   ],
                 ),
@@ -558,7 +581,7 @@ class _ChartsRow extends StatelessWidget {
         // Disposition écran étroit : empilé
         return LineChartWidget(
           title: 'Monthly Statistics / Statistiques mensuelles',
-          data: vm.monthlyData,
+          data: vm.monthlyPatients,
           labels: vm.monthLabels,
         );
       },
@@ -612,18 +635,48 @@ class _RecentTablesRow extends StatelessWidget {
     return StreamBuilder<QuerySnapshot>(
       stream: service.getDoctorsStream(),
       builder: (context, snapshot) {
-        // Display only last 4 entries
-        // Afficher seulement les 4 dernières entrées
-        final docs = (snapshot.data?.docs ?? []).take(4).toList();
+        final isLoading = snapshot.connectionState == ConnectionState.waiting;
+        if (snapshot.hasError) {
+          return AdminDataTable(
+            title: 'Recent Doctors / Derniers Médecins',
+            columns: const [
+              'Name / Nom',
+              'Specialty / Spécialité',
+              'Status / Statut',
+            ],
+            rows: [
+              [
+                Text(
+                  'Error loading doctors',
+                  style: GoogleFonts.inter(color: AdminColors.danger),
+                ),
+                const SizedBox.shrink(),
+                const SizedBox.shrink(),
+              ],
+            ],
+          );
+        }
+        final docs = [...(snapshot.data?.docs ?? [])]
+          ..sort((a, b) {
+            final aTs =
+                (a.data() as Map<String, dynamic>)['createdAt'] as Timestamp?;
+            final bTs =
+                (b.data() as Map<String, dynamic>)['createdAt'] as Timestamp?;
+            final aMs = aTs?.millisecondsSinceEpoch ?? 0;
+            final bMs = bTs?.millisecondsSinceEpoch ?? 0;
+            return bMs.compareTo(aMs);
+          });
+        final recent = docs.take(4).toList();
 
         return AdminDataTable(
           title: 'Recent Doctors / Derniers Médecins',
+          isLoading: isLoading,
           columns: const [
             'Name / Nom',
             'Specialty / Spécialité',
             'Status / Statut',
           ],
-          rows: docs.map((doc) {
+          rows: recent.map((doc) {
             final data = doc.data() as Map<String, dynamic>;
             final fullName =
                 '${data['firstName'] ?? ''} ${data['lastName'] ?? ''}';
@@ -665,16 +718,48 @@ class _RecentTablesRow extends StatelessWidget {
     return StreamBuilder<QuerySnapshot>(
       stream: service.getPatientsStream(),
       builder: (context, snapshot) {
-        final docs = (snapshot.data?.docs ?? []).take(4).toList();
+        final isLoading = snapshot.connectionState == ConnectionState.waiting;
+        if (snapshot.hasError) {
+          return AdminDataTable(
+            title: 'Recent Patients / Dernières Patientes',
+            columns: const [
+              'Name / Nom',
+              'Province / Wilaya',
+              'Status / Statut',
+            ],
+            rows: [
+              [
+                Text(
+                  'Error loading patients',
+                  style: GoogleFonts.inter(color: AdminColors.danger),
+                ),
+                const SizedBox.shrink(),
+                const SizedBox.shrink(),
+              ],
+            ],
+          );
+        }
+        final docs = [...(snapshot.data?.docs ?? [])]
+          ..sort((a, b) {
+            final aTs =
+                (a.data() as Map<String, dynamic>)['createdAt'] as Timestamp?;
+            final bTs =
+                (b.data() as Map<String, dynamic>)['createdAt'] as Timestamp?;
+            final aMs = aTs?.millisecondsSinceEpoch ?? 0;
+            final bMs = bTs?.millisecondsSinceEpoch ?? 0;
+            return bMs.compareTo(aMs);
+          });
+        final recent = docs.take(4).toList();
 
         return AdminDataTable(
           title: 'Recent Patients / Dernières Patientes',
+          isLoading: isLoading,
           columns: const [
             'Name / Nom',
             'Province / Wilaya',
             'Status / Statut',
           ],
-          rows: docs.map((doc) {
+          rows: recent.map((doc) {
             final data = doc.data() as Map<String, dynamic>;
             final fullName =
                 '${data['firstName'] ?? ''} ${data['lastName'] ?? ''}';

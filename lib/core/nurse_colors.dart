@@ -1,0 +1,24 @@
+import 'package:flutter/material.dart';
+
+/// HerCare — Nurse portal palette (navy shell, coral accent).
+class NurseColors {
+  NurseColors._();
+
+  static const Color sidebarBg = Color(0xFF1B2A4A);
+  static const Color sidebarText = Color(0xFFE8EDF7);
+  static const Color sidebarMuted = Color(0xFF94A3C8);
+  static const Color sidebarActive = Color(0xFF7C3AED);
+  static const Color pageBg = Color(0xFFF8FAFC);
+  static const Color topbarBg = Color(0xFFFFFFFF);
+  static const Color cardBorder = Color(0xFFE2E8F0);
+  static const Color primary = Color(0xFFEC4899);
+  static const Color primaryDark = Color(0xFFDB2777);
+  static const Color accentBlue = Color(0xFF3B82F6);
+  static const Color success = Color(0xFF10B981);
+  static const Color warning = Color(0xFFF59E0B);
+  static const Color critical = Color(0xFFEF4444);
+  static const Color textPrimary = Color(0xFF0F172A);
+  static const Color textSecondary = Color(0xFF64748B);
+  static const Color textLight = Color(0xFF94A3B8);
+  static const Color tint = Color(0xFFFDF2F8);
+}

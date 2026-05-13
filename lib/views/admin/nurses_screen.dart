@@ -68,9 +68,27 @@ class NursesScreen extends StatelessWidget {
           StreamBuilder<QuerySnapshot>(
             stream: service.getNursesStream(),
             builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return Center(
+                  child: Text(
+                    'Error loading nurses: ${snapshot.error}',
+                    style: GoogleFonts.inter(color: AdminColors.danger),
+                  ),
+                );
+              }
+
               final isLoading =
                   snapshot.connectionState == ConnectionState.waiting;
-              final docs = snapshot.data?.docs ?? [];
+              final docs = [...(snapshot.data?.docs ?? [])]
+                ..sort((a, b) {
+                  final aTs =
+                      (a.data() as Map<String, dynamic>)['createdAt'] as Timestamp?;
+                  final bTs =
+                      (b.data() as Map<String, dynamic>)['createdAt'] as Timestamp?;
+                  final aMs = aTs?.millisecondsSinceEpoch ?? 0;
+                  final bMs = bTs?.millisecondsSinceEpoch ?? 0;
+                  return bMs.compareTo(aMs);
+                });
 
               return AdminDataTable(
                 title: 'Nurses (${docs.length}) / Infirmières',
@@ -294,7 +312,7 @@ class NursesScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   DropdownButtonFormField<String>(
-                    value: selectedShift,
+                    initialValue: selectedShift,
                     onChanged: (v) => setDialogState(
                       () => selectedShift = v!,
                     ),
@@ -343,35 +361,35 @@ class NursesScreen extends StatelessWidget {
                           onPressed: isLoading
                               ? null
                               : () async {
-                                  setDialogState(
-                                    () => isLoading = true,
+                                  setDialogState(() => isLoading = true);
+                                  final id = await service.addNurse(
+                                    firstName: firstNameCtrl.text,
+                                    lastName: lastNameCtrl.text,
+                                    email: emailCtrl.text,
+                                    password: passwordCtrl.text,
+                                    phone: phoneCtrl.text,
+                                    department: departmentCtrl.text,
+                                    shift: selectedShift,
                                   );
-                                  try {
-                                    await service.addNurse(
-                                      firstName: firstNameCtrl.text,
-                                      lastName: lastNameCtrl.text,
-                                      email: emailCtrl.text,
-                                      password: passwordCtrl.text,
-                                      phone: phoneCtrl.text,
-                                      department: departmentCtrl.text,
-                                      shift: selectedShift,
-                                    );
+
+                                  if (id != null) {
                                     if (ctx.mounted) {
                                       Navigator.pop(ctx);
+                                      if (!context.mounted) return;
                                       _showSnackBar(
                                         context,
-                                        '✅ Nurse added!'
-                                        ' / Infirmière ajoutée!',
+                                        'Nurse account created successfully.',
                                         AdminColors.success,
                                       );
                                     }
-                                  } catch (e) {
-                                    setDialogState(
-                                      () => isLoading = false,
-                                    );
+                                  } else {
+                                    setDialogState(() => isLoading = false);
+                                    if (!context.mounted) return;
+                                    final code =
+                                        service.lastError ?? 'unknown-error';
                                     _showSnackBar(
                                       context,
-                                      'Error: $e',
+                                      'Cannot create nurse account: $code',
                                       AdminColors.danger,
                                     );
                                   }
@@ -479,7 +497,7 @@ class NursesScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 DropdownButtonFormField<String>(
-                  value: selectedShift,
+                  initialValue: selectedShift,
                   onChanged: (v) => setDialogState(
                     () => selectedShift = v!,
                   ),
@@ -502,7 +520,7 @@ class NursesScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 DropdownButtonFormField<String>(
-                  value: selectedStatus,
+                  initialValue: selectedStatus,
                   onChanged: (v) => setDialogState(
                     () => selectedStatus = v!,
                   ),

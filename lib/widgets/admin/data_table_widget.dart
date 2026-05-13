@@ -323,11 +323,15 @@ class StatusBadge extends StatelessWidget {
 // Boutons d'action du tableau
 // ============================================
 class TableActions extends StatelessWidget {
+  final VoidCallback? onView;
+  final VoidCallback? onAssign;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
 
   const TableActions({
     super.key,
+    this.onView,
+    this.onAssign,
     this.onEdit,
     this.onDelete,
   });
@@ -337,17 +341,27 @@ class TableActions extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Edit button / Bouton modifier
+        if (onView != null)
+          _ActionButton(
+            icon: Icons.visibility_outlined,
+            color: AdminColors.textSecondary,
+            onTap: onView!,
+          ),
+        if (onView != null) const SizedBox(width: 6),
+        if (onAssign != null)
+          _ActionButton(
+            icon: Icons.person_add_alt_1_outlined,
+            color: AdminColors.info,
+            onTap: onAssign!,
+          ),
+        if (onAssign != null) const SizedBox(width: 6),
         if (onEdit != null)
           _ActionButton(
             icon: Icons.edit_outlined,
             color: AdminColors.primaryBlue,
             onTap: onEdit!,
           ),
-
-        const SizedBox(width: 6),
-
-        // Delete button / Bouton supprimer
+        if (onEdit != null) const SizedBox(width: 6),
         if (onDelete != null)
           _ActionButton(
             icon: Icons.delete_outline_rounded,
