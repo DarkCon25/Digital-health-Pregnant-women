@@ -32,7 +32,7 @@ class LineChartWidget extends StatelessWidget {
         border: Border.all(color: AdminColors.border),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -88,7 +88,7 @@ class LineChartWidget extends StatelessWidget {
               painter: _LineChartPainter(
                 data: data,
                 color: AdminColors.primaryBlue,
-                fillColor: AdminColors.primaryBlue.withOpacity(0.08),
+                fillColor: AdminColors.primaryBlue.withValues(alpha: 0.08),
               ),
               size: Size.infinite,
             ),
@@ -251,7 +251,7 @@ class PieChartWidget extends StatelessWidget {
         border: Border.all(color: AdminColors.border),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -398,3 +398,4 @@ class _PieChartPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
+

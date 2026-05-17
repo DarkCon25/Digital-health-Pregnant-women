@@ -382,7 +382,7 @@ class PatientsScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   DropdownButtonFormField<String>(
-                    value: status,
+                    initialValue: status,
                     onChanged: (v) => setS(() => status = v!),
                     decoration: _dropDeco(),
                     items: [
@@ -538,64 +538,70 @@ class PatientsScreen extends StatelessWidget {
                       );
                     }
 
-                    return Container(
-                      constraints: const BoxConstraints(maxHeight: 300),
-                      child: ListView.builder(
-                        shrinkWrap: true,
-                        itemCount: doctors.length,
-                        itemBuilder: (context, index) {
-                          final doc = doctors[index];
-                          final docData =
-                              doc.data() as Map<String, dynamic>;
-                          final doctorName =
-                              '${docData['firstName'] ?? ''} '
-                              '${docData['lastName'] ?? ''}';
-                          final specialty =
-                              docData['specialty'] as String? ?? '';
+                    return RadioGroup<String>(
+                      groupValue: selectedDoctorId,
+                      onChanged: (value) {
+                        setS(() {
+                          selectedDoctorId = value;
+                        });
+                      },
+                      child: Container(
+                        constraints: const BoxConstraints(maxHeight: 300),
+                        child: ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: doctors.length,
+                          itemBuilder: (context, index) {
+                            final doc = doctors[index];
+                            final docData =
+                                doc.data() as Map<String, dynamic>;
+                            final doctorName =
+                                '${docData['firstName'] ?? ''} '
+                                '${docData['lastName'] ?? ''}';
+                            final specialty =
+                                docData['specialty'] as String? ?? '';
 
-                          return RadioListTile<String>(
-                            value: doc.id,
-                            groupValue: selectedDoctorId,
-                            activeColor: AdminColors.primaryBlue,
-                            onChanged: (value) {
-                              setS(() {
-                                selectedDoctorId = value;
-                                selectedDoctorName = doctorName;
-                              });
-                            },
-                            title: Text(
-                              doctorName,
-                              style: GoogleFonts.poppins(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
+                            if (selectedDoctorId == doc.id &&
+                                selectedDoctorName != doctorName) {
+                              selectedDoctorName = doctorName;
+                            }
+
+                            return RadioListTile<String>(
+                              value: doc.id,
+                              activeColor: AdminColors.primaryBlue,
+                              title: Text(
+                                doctorName,
+                                style: GoogleFonts.poppins(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
                               ),
-                            ),
-                            subtitle: Text(
-                              specialty,
-                              style: GoogleFonts.poppins(fontSize: 12),
-                            ),
-                            secondary: CircleAvatar(
-                              backgroundColor:
-                                  AdminColors.primaryBlue.withAlpha(30),
-                              backgroundImage:
-                                  docData['profileImage'] != null
-                                      ? NetworkImage(
-                                          docData['profileImage'] as String)
-                                      : null,
-                              child: docData['profileImage'] == null
-                                  ? Text(
-                                      doctorName.isNotEmpty
-                                          ? doctorName[0]
-                                          : 'D',
-                                      style: const TextStyle(
-                                        color: AdminColors.primaryBlue,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    )
-                                  : null,
-                            ),
-                          );
-                        },
+                              subtitle: Text(
+                                specialty,
+                                style: GoogleFonts.poppins(fontSize: 12),
+                              ),
+                              secondary: CircleAvatar(
+                                backgroundColor:
+                                    AdminColors.primaryBlue.withAlpha(30),
+                                backgroundImage:
+                                    docData['profileImage'] != null
+                                        ? NetworkImage(
+                                            docData['profileImage'] as String)
+                                        : null,
+                                child: docData['profileImage'] == null
+                                    ? Text(
+                                        doctorName.isNotEmpty
+                                            ? doctorName[0]
+                                            : 'D',
+                                        style: const TextStyle(
+                                          color: AdminColors.primaryBlue,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      )
+                                    : null,
+                              ),
+                            );
+                          },
+                        ),
                       ),
                     );
                   },
@@ -765,33 +771,33 @@ class PatientsScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: RadioListTile<String>(
-                          value: 'male',
-                          groupValue: gender,
-                          activeColor: AdminColors.primaryBlue,
-                          onChanged: (v) => setS(() => gender = v!),
-                          title: Text(
-                            'Male',
-                            style: GoogleFonts.poppins(fontSize: 14),
+                  RadioGroup<String>(
+                    groupValue: gender,
+                    onChanged: (v) => setS(() => gender = v ?? gender),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: RadioListTile<String>(
+                            value: 'male',
+                            activeColor: AdminColors.primaryBlue,
+                            title: Text(
+                              'Male',
+                              style: GoogleFonts.poppins(fontSize: 14),
+                            ),
                           ),
                         ),
-                      ),
-                      Expanded(
-                        child: RadioListTile<String>(
-                          value: 'female',
-                          groupValue: gender,
-                          activeColor: AdminColors.pink,
-                          onChanged: (v) => setS(() => gender = v!),
-                          title: Text(
-                            'Female',
-                            style: GoogleFonts.poppins(fontSize: 14),
+                        Expanded(
+                          child: RadioListTile<String>(
+                            value: 'female',
+                            activeColor: AdminColors.pink,
+                            title: Text(
+                              'Female',
+                              style: GoogleFonts.poppins(fontSize: 14),
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 14),
 
@@ -1052,7 +1058,7 @@ class PatientsScreen extends StatelessWidget {
                         padding: const EdgeInsets.all(40),
                         child: Column(
                           children: [
-                            Icon(
+                            const Icon(
                               Icons.child_care,
                               size: 52,
                               color: AdminColors.textLight,

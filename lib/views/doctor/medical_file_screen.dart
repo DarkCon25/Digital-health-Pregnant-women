@@ -1,18 +1,21 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/doctor_colors.dart';
 import '../../core/app_strings.dart';
+import '../../models/doctor/consultation_model.dart';
 import '../../models/doctor/lab_test_model.dart';
 import '../../models/patient_model.dart';
 import '../../services/doctor_service.dart';
 import '../../viewmodels/doctor/medical_file_viewmodel.dart';
 import '../../widgets/doctor/doctor_fl_chart.dart';
 import '../../widgets/doctor/vital_signs_card.dart';
+import '../../widgets/doctor/consultation_history_card.dart';
 
 class MedicalFileScreen extends StatelessWidget {
   const MedicalFileScreen({super.key, required this.patientId});
@@ -61,12 +64,43 @@ class _MedicalFileTabsShell extends StatelessWidget {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
         ),
-        bottom: TabBar(
+        actions: [
+          // ── Status indicator
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Center(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: p?.status.toLowerCase() == 'critical'
+                          ? DoctorColors.critical
+                          : DoctorColors.success,
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    p?.status ?? '—',
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+        bottom: const TabBar(
           isScrollable: true,
           labelColor: DoctorColors.primary,
           unselectedLabelColor: DoctorColors.textSecondary,
           indicatorColor: DoctorColors.primary,
-          tabs: const [
+          tabs: [
             Tab(text: DoctorStrings.tabBasic),
             Tab(text: DoctorStrings.tabPregnancy),
             Tab(text: DoctorStrings.tabVitals),
@@ -77,13 +111,66 @@ class _MedicalFileTabsShell extends StatelessWidget {
       ),
       body: vm.loading
           ? const Center(child: CircularProgressIndicator())
-          : TabBarView(
+          : Stack(
               children: [
-                _BasicInfoTab(patient: p),
-                _PregnancyTab(patientId: patientId),
-                _HealthIndicatorsTab(patientId: patientId),
-                _LabTab(patientId: patientId),
-                const _ReportsTab(),
+                TabBarView(
+                  children: [
+                    _BasicInfoTab(patient: p),
+                    _PregnancyTab(patientId: patientId),
+                    _HealthIndicatorsTab(patientId: patientId),
+                    _LabTab(patientId: patientId),
+                    const _ReportsTab(),
+                  ],
+                ),
+                // ── Error/Success message overlay
+                if (vm.error != null || vm.successMessage != null)
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: Material(
+                      color: Colors.transparent,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                        margin: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: vm.error != null
+                              ? DoctorColors.critical
+                              : DoctorColors.success,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              vm.error != null
+                                  ? Icons.error_outline
+                                  : Icons.check_circle_outline,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                vm.error ?? vm.successMessage ?? '',
+                                style: GoogleFonts.inter(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              icon:
+                                  const Icon(Icons.close, color: Colors.white),
+                              iconSize: 18,
+                              onPressed: vm.clearMessages,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
               ],
             ),
     );
@@ -112,10 +199,10 @@ class _BasicInfoTab extends StatelessWidget {
               CircleAvatar(
                 radius: 48,
                 backgroundColor: DoctorColors.primary.withValues(alpha: 0.15),
-                backgroundImage: p.profileImage != null &&
-                        p.profileImage!.isNotEmpty
-                    ? NetworkImage(p.profileImage!)
-                    : null,
+                backgroundImage:
+                    p.profileImage != null && p.profileImage!.isNotEmpty
+                        ? NetworkImage(p.profileImage!)
+                        : null,
                 child: p.profileImage == null || p.profileImage!.isEmpty
                     ? Text(
                         p.firstName.isNotEmpty ? p.firstName[0] : '?',
@@ -148,7 +235,8 @@ class _BasicInfoTab extends StatelessWidget {
                       DoctorStrings.labelBloodType,
                       p.bloodType ?? '—',
                     ),
-                    _line(Icons.phone_outlined, DoctorStrings.labelPhone, p.phone),
+                    _line(Icons.phone_outlined, DoctorStrings.labelPhone,
+                        p.phone),
                     _line(
                       Icons.place_outlined,
                       DoctorStrings.labelAddress,
@@ -372,8 +460,7 @@ class _HealthIndicatorsTabState extends State<_HealthIndicatorsTab> {
   }
 
   int? _pi(String s) => int.tryParse(s.trim());
-  double? _pd(String s) =>
-      double.tryParse(s.trim().replaceAll(',', '.'));
+  double? _pd(String s) => double.tryParse(s.trim().replaceAll(',', '.'));
 
   @override
   Widget build(BuildContext context) {
@@ -443,162 +530,340 @@ class _HealthIndicatorsTabState extends State<_HealthIndicatorsTab> {
           Text(DoctorStrings.updateVitals,
               style: GoogleFonts.inter(fontWeight: FontWeight.w800)),
           const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: DoctorColors.cardBorder),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Enter New Vital Signs',
+                  style: GoogleFonts.inter(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                    color: DoctorColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                // ── Row 1: Blood Pressure
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _sys,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: DoctorStrings.labelSystolic,
+                          hintText: '120',
+                          suffix: Text('mmHg',
+                              style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  color: DoctorColors.textSecondary)),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          filled: true,
+                          fillColor: DoctorColors.pageBg,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      '/',
+                      style: GoogleFonts.inter(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        controller: _dia,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: DoctorStrings.labelDiastolic,
+                          hintText: '80',
+                          suffix: Text('mmHg',
+                              style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  color: DoctorColors.textSecondary)),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          filled: true,
+                          fillColor: DoctorColors.pageBg,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                // ── Row 2: Heart Rates
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _hr,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: 'Maternal HR',
+                          hintText: '70',
+                          suffix: Text('bpm',
+                              style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  color: DoctorColors.textSecondary)),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          filled: true,
+                          fillColor: DoctorColors.pageBg,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        controller: _fhr,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: 'Fetal HR',
+                          hintText: '140',
+                          suffix: Text('bpm',
+                              style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  color: DoctorColors.textSecondary)),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          filled: true,
+                          fillColor: DoctorColors.pageBg,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                // ── Row 3: Other vitals
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _glucose,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: 'Blood Glucose',
+                          hintText: '100',
+                          suffix: Text('g/L',
+                              style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  color: DoctorColors.textSecondary)),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          filled: true,
+                          fillColor: DoctorColors.pageBg,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        controller: _temp,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: 'Temperature',
+                          hintText: '37',
+                          suffix: Text('°C',
+                              style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  color: DoctorColors.textSecondary)),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          filled: true,
+                          fillColor: DoctorColors.pageBg,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
             children: [
-              SizedBox(
-                width: 100,
-                child: TextField(
-                  controller: _sys,
-                  decoration: const InputDecoration(
-                    labelText: DoctorStrings.labelSystolic,
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: vm.saving
+                      ? null
+                      : () async {
+                          final ok = await vm.saveVitals(
+                            systolic: _pi(_sys.text),
+                            diastolic: _pi(_dia.text),
+                            heartRate: _pi(_hr.text),
+                            fetalHr: _pi(_fhr.text),
+                            glucose: _pd(_glucose.text),
+                            temp: _pd(_temp.text),
+                          );
+                          if (ok) {
+                            _sys.clear();
+                            _dia.clear();
+                            _hr.clear();
+                            _fhr.clear();
+                            _glucose.clear();
+                            _temp.clear();
+                          }
+                        },
+                  icon: vm.saving
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
+                          ),
+                        )
+                      : const Icon(Icons.save_outlined),
+                  label: Text(vm.saving ? 'Saving...' : DoctorStrings.save),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: DoctorColors.primary,
                   ),
                 ),
               ),
-              SizedBox(
-                width: 100,
-                child: TextField(
-                  controller: _dia,
-                  decoration: const InputDecoration(
-                    labelText: DoctorStrings.labelDiastolic,
-                  ),
-                ),
-              ),
-              SizedBox(
-                width: 100,
-                child: TextField(
-                  controller: _hr,
-                  decoration: const InputDecoration(
-                    labelText: DoctorStrings.labelHr,
-                  ),
-                ),
-              ),
-              SizedBox(
-                width: 100,
-                child: TextField(
-                  controller: _fhr,
-                  decoration: const InputDecoration(
-                    labelText: DoctorStrings.labelFhr,
-                  ),
-                ),
-              ),
-              SizedBox(
-                width: 100,
-                child: TextField(
-                  controller: _glucose,
-                  decoration: const InputDecoration(
-                    labelText: DoctorStrings.labelSugar,
-                  ),
-                ),
-              ),
-              SizedBox(
-                width: 100,
-                child: TextField(
-                  controller: _temp,
-                  decoration: const InputDecoration(
-                    labelText: DoctorStrings.labelTemp,
-                  ),
-                ),
+              const SizedBox(width: 12),
+              OutlinedButton.icon(
+                onPressed: () {
+                  _sys.clear();
+                  _dia.clear();
+                  _hr.clear();
+                  _fhr.clear();
+                  _glucose.clear();
+                  _temp.clear();
+                },
+                icon: const Icon(Icons.refresh_outlined),
+                label: const Text('Clear'),
               ),
             ],
-          ),
-          const SizedBox(height: 8),
-          FilledButton.icon(
-            onPressed: vm.saving
-                ? null
-                : () async {
-                    final ok = await vm.saveVitals(
-                      systolic: _pi(_sys.text),
-                      diastolic: _pi(_dia.text),
-                      heartRate: _pi(_hr.text),
-                      fetalHr: _pi(_fhr.text),
-                      glucose: _pd(_glucose.text),
-                      temp: _pd(_temp.text),
-                    );
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            ok
-                                ? DoctorStrings.savedSnackbar
-                                : (vm.error ?? 'Failed to save vitals'),
-                          ),
-                        ),
-                      );
-                    }
-                  },
-            icon: const Icon(Icons.save_outlined),
-            label: const Text(DoctorStrings.save),
-            style: FilledButton.styleFrom(
-              backgroundColor: DoctorColors.primary,
-            ),
           ),
           const SizedBox(height: 20),
           Text(DoctorStrings.visitNote,
               style: GoogleFonts.inter(fontWeight: FontWeight.w800)),
-          TextField(
-              controller: _diag,
-              decoration: const InputDecoration(
-                labelText: DoctorStrings.labelDiagnosis,
-              )),
-          TextField(
-            controller: _note,
-            minLines: 2,
-            maxLines: 4,
-            decoration: const InputDecoration(
-              labelText: DoctorStrings.labelNotes,
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: DoctorColors.cardBorder),
             ),
-          ),
-          OutlinedButton.icon(
-            onPressed: vm.saving
-                ? null
-                : () async {
-                    final ok = await vm.addConsultationNote(
-                      notes: _note.text,
-                      diagnosis: _diag.text.isEmpty ? null : _diag.text,
-                      visitDate: DateTime.now(),
-                    );
-                    if (ok) {
-                      _note.clear();
-                      _diag.clear();
-                    }
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            ok
-                                ? DoctorStrings.visitRegisteredSnackbar
-                                : (vm.error ?? 'Failed to register visit'),
-                          ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextField(
+                  controller: _diag,
+                  decoration: InputDecoration(
+                    labelText: DoctorStrings.labelDiagnosis,
+                    hintText: 'e.g., Gestational Diabetes',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    filled: true,
+                    fillColor: DoctorColors.pageBg,
+                    prefixIcon: const Icon(Icons.local_hospital_outlined),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _note,
+                  minLines: 3,
+                  maxLines: 5,
+                  decoration: InputDecoration(
+                    labelText: DoctorStrings.labelNotes,
+                    hintText: 'Enter your clinical notes here...',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    filled: true,
+                    fillColor: DoctorColors.pageBg,
+                    prefixIcon: const Padding(
+                      padding: EdgeInsets.only(top: 8),
+                      child: Icon(Icons.description_outlined),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: vm.saving
+                            ? null
+                            : () async {
+                                final ok = await vm.addConsultationNote(
+                                  notes: _note.text,
+                                  diagnosis:
+                                      _diag.text.isEmpty ? null : _diag.text,
+                                  visitDate: DateTime.now(),
+                                );
+                                if (ok) {
+                                  _note.clear();
+                                  _diag.clear();
+                                }
+                              },
+                        icon: const Icon(Icons.note_add_outlined),
+                        label: Text(vm.saving
+                            ? 'Registering...'
+                            : DoctorStrings.registerVisit),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: vm.saving
+                            ? null
+                            : () {
+                                if (_note.text.trim().isEmpty &&
+                                    _diag.text.trim().isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Please enter notes or diagnosis',
+                                      ),
+                                    ),
+                                  );
+                                  return;
+                                }
+                                final patient = vm.patient;
+                                final diagnosis = _diag.text.trim();
+                                final notes = _note.text.trim();
+                                _showPrescriptionPreview(
+                                  context,
+                                  patientName: patient?.fullName ??
+                                      DoctorStrings.doctorFallbackName,
+                                  diagnosis:
+                                      diagnosis.isEmpty ? 'N/A' : diagnosis,
+                                  notes: notes.isEmpty ? 'N/A' : notes,
+                                );
+                              },
+                        style: FilledButton.styleFrom(
+                          backgroundColor: DoctorColors.primary,
                         ),
-                      );
-                    }
-                  },
-            icon: const Icon(Icons.note_add_outlined),
-            label: const Text(DoctorStrings.registerVisit),
-          ),
-          const SizedBox(height: 8),
-          FilledButton.icon(
-            onPressed: vm.saving
-                ? null
-                : () {
-                    final patient = vm.patient;
-                    final diagnosis = _diag.text.trim();
-                    final notes = _note.text.trim();
-                    _showPrescriptionPreview(
-                      context,
-                      patientName: patient?.fullName ?? DoctorStrings.doctorFallbackName,
-                      diagnosis: diagnosis.isEmpty ? 'N/A' : diagnosis,
-                      notes: notes.isEmpty ? 'N/A' : notes,
-                    );
-                  },
-            style: FilledButton.styleFrom(
-              backgroundColor: DoctorColors.primary,
+                        icon: const Icon(Icons.print_outlined),
+                        label: const Text('Print Prescription'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-            icon: const Icon(Icons.print_outlined),
-            label: const Text('Print Prescription'),
-          ),
+          )
         ],
       ),
     );
@@ -643,7 +908,8 @@ $notes
               Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text('Use browser/OS print dialog (Ctrl+P) to print.'),
+                  content:
+                      Text('Use browser/OS print dialog (Ctrl+P) to print.'),
                 ),
               );
             },
@@ -677,15 +943,15 @@ class _LabTab extends StatelessWidget {
             children: [
               Text(
                 DoctorStrings.storedLabs,
-                style: GoogleFonts.inter(fontWeight: FontWeight.w800, fontSize: 16),
+                style: GoogleFonts.inter(
+                    fontWeight: FontWeight.w800, fontSize: 16),
               ),
               const Spacer(),
               FilledButton.icon(
                 onPressed: !canAddLab
                     ? null
                     : () {
-                        final p =
-                            context.read<MedicalFileViewModel>().patient;
+                        final p = context.read<MedicalFileViewModel>().patient;
                         if (p == null) return;
                         _addLab(context, service, doctorId, p);
                       },
@@ -710,7 +976,8 @@ class _LabTab extends StatelessWidget {
                   return Center(
                     child: Text(
                       DoctorStrings.noLabTests,
-                      style: GoogleFonts.inter(color: DoctorColors.textSecondary),
+                      style:
+                          GoogleFonts.inter(color: DoctorColors.textSecondary),
                     ),
                   );
                 }
@@ -727,7 +994,8 @@ class _LabTab extends StatelessWidget {
                         side: const BorderSide(color: DoctorColors.cardBorder),
                       ),
                       title: Text(t.testName,
-                          style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+                          style:
+                              GoogleFonts.inter(fontWeight: FontWeight.w700)),
                       subtitle: Text(
                         '${t.category} • ${DateFormat.yMMMd().format(t.testDate)}',
                       ),
@@ -746,7 +1014,21 @@ class _LabTab extends StatelessWidget {
                           ),
                           if (t.pdfUrl != null && t.pdfUrl!.isNotEmpty)
                             TextButton(
-                              onPressed: () {},
+                              onPressed: () async {
+                                final url = t.pdfUrl!.trim();
+                                await Clipboard.setData(
+                                  ClipboardData(text: url),
+                                );
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'PDF link copied to clipboard',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
                               child: const Text('PDF'),
                             ),
                         ],
@@ -876,23 +1158,355 @@ class _ReportsTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<MedicalFileViewModel>();
-    return ListView(
-      padding: const EdgeInsets.all(16),
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // ── Summary statistics
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: DoctorColors.cardBorder),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Summary Statistics',
+                  style: GoogleFonts.inter(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 14,
+                    color: DoctorColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _StatTile(
+                        label: 'Total Visits',
+                        value: '${vm.medical?.visitCount ?? 0}',
+                        icon: Icons.event_note_outlined,
+                        color: DoctorColors.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _StatTile(
+                        label: 'Consultations',
+                        value: '${vm.consultations.length}',
+                        icon: Icons.message_outlined,
+                        color: DoctorColors.accentBlue,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _StatTile(
+                        label: 'Last Visit',
+                        value: vm.medical?.lastVisitAt != null
+                            ? DateFormat('MMM d')
+                                .format(vm.medical!.lastVisitAt!)
+                            : '—',
+                        icon: Icons.calendar_today_outlined,
+                        color: DoctorColors.success,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // ── Consultation history header
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Consultation History (${vm.consultations.length})',
+                style: GoogleFonts.inter(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 16,
+                  color: DoctorColors.textPrimary,
+                ),
+              ),
+              if (vm.consultations.isNotEmpty)
+                FilledButton.icon(
+                  onPressed: () => _exportConsultations(context, vm),
+                  icon: const Icon(Icons.download_outlined, size: 18),
+                  label: const Text('Export'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor:
+                        DoctorColors.primary.withValues(alpha: 0.1),
+                    foregroundColor: DoctorColors.primary,
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // ── Consultations list
+          if (vm.consultations.isEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 40),
+              child: Center(
+                child: Column(
+                  children: [
+                    const Icon(
+                      Icons.inbox_outlined,
+                      size: 48,
+                      color: DoctorColors.textLight,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'No consultations recorded yet',
+                      style: GoogleFonts.inter(
+                        color: DoctorColors.textSecondary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            ...([...vm.consultations]
+                  ..sort((a, b) => b.visitDate.compareTo(a.visitDate)))
+                .map(
+                  (consultation) => ConsultationHistoryCard(
+                    consultation: consultation,
+                    isDeletable: vm.canDeleteConsultation,
+                    onDelete: () async {
+                      final ok = await vm.deleteConsultation(consultation.id);
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              ok
+                                  ? 'Consultation deleted'
+                                  : (vm.error ?? 'Failed to delete'),
+                            ),
+                            backgroundColor: ok
+                                ? DoctorColors.success
+                                : DoctorColors.critical,
+                          ),
+                        );
+                      }
+                    },
+                    onView: () {
+                      _showConsultationDetails(context, consultation);
+                    },
+                  ),
+                )
+                ,
+        ],
+      ),
+    );
+  }
+
+  void _exportConsultations(BuildContext context, MedicalFileViewModel vm) async {
+    final rows = <String>[
+      'visit_date,doctor_id,diagnosis,notes',
+      ...vm.consultations.map((c) {
+        final date = DateFormat('yyyy-MM-dd HH:mm').format(c.visitDate);
+        final diagnosis = (c.diagnosis ?? '').replaceAll(',', ' ');
+        final notes = c.notes.replaceAll(',', ' ').replaceAll('\n', ' ');
+        return '$date,${c.doctorId},$diagnosis,$notes';
+      }),
+    ];
+    final csv = rows.join('\n');
+    await Clipboard.setData(ClipboardData(text: csv));
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Exported ${vm.consultations.length} consultations (copied as CSV)',
+          ),
+        ),
+      );
+    }
+  }
+
+  void _showConsultationDetails(
+    BuildContext context,
+    ConsultationModel consultation,
+  ) {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => Dialog(
+        insetPadding: const EdgeInsets.all(16),
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 500),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: const BoxDecoration(
+                  color: DoctorColors.primary,
+                  borderRadius: BorderRadius.vertical(
+                    top: Radius.circular(12),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Consultation Details',
+                      style: GoogleFonts.inter(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
+                ),
+              ),
+              SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _DetailRow(
+                      label: 'Visit Date',
+                      value: DateFormat('EEEE, MMMM d, yyyy • kk:mm')
+                          .format(consultation.visitDate),
+                    ),
+                    const SizedBox(height: 12),
+                    if (consultation.diagnosis != null &&
+                        consultation.diagnosis!.isNotEmpty) ...[
+                      _DetailRow(
+                        label: 'Diagnosis',
+                        value: consultation.diagnosis!,
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                    _DetailRow(
+                      label: 'Clinical Notes',
+                      value: consultation.notes,
+                      multiline: true,
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: const BoxDecoration(
+                  border:
+                      Border(top: BorderSide(color: DoctorColors.cardBorder)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text('Close'),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Helper widget for displaying detail rows
+class _DetailRow extends StatelessWidget {
+  const _DetailRow({
+    required this.label,
+    required this.value,
+    this.multiline = false,
+  });
+
+  final String label;
+  final String value;
+  final bool multiline;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          DoctorStrings.visitLogTitle,
-          style: GoogleFonts.inter(fontWeight: FontWeight.w800, fontSize: 16),
+          label,
+          style: GoogleFonts.inter(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: DoctorColors.textSecondary,
+          ),
         ),
-        const SizedBox(height: 12),
-        ...vm.consultations.map(
-          (c) => Card(
-            child: ListTile(
-              title: Text(c.notes, maxLines: 4),
-              subtitle: Text(DateFormat.yMMMd().add_Hm().format(c.visitDate)),
-              trailing: c.diagnosis != null
-                  ? Chip(label: Text(c.diagnosis!))
-                  : null,
+        const SizedBox(height: 6),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: DoctorColors.pageBg,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(
+            value,
+            style: GoogleFonts.inter(
+              fontSize: 13,
+              color: DoctorColors.textPrimary,
+              height: 1.5,
             ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Helper widget for displaying statistics tiles
+class _StatTile extends StatelessWidget {
+  const _StatTile({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.color,
+  });
+
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 16, color: color),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: GoogleFonts.inter(
+                fontSize: 11,
+                color: DoctorColors.textSecondary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Text(
+          value,
+          style: GoogleFonts.inter(
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+            color: color,
           ),
         ),
       ],

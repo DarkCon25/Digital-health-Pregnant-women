@@ -32,7 +32,7 @@ class PatientDetailsScreen extends StatelessWidget {
         }
         final p = snap.data;
         if (p == null) {
-          return Center(child: Text(NurseStrings.noPatients));
+          return const Center(child: Text(NurseStrings.noPatients));
         }
         final pat = p.patient;
         return SingleChildScrollView(
@@ -56,7 +56,7 @@ class PatientDetailsScreen extends StatelessWidget {
                     FilledButton.icon(
                       onPressed: onMonitor,
                       icon: const Icon(Icons.monitor_heart_outlined),
-                      label: Text(NurseStrings.pageVitals),
+                      label: const Text(NurseStrings.pageVitals),
                       style: FilledButton.styleFrom(
                         backgroundColor: NurseColors.primary,
                       ),

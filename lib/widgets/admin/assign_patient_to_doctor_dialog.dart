@@ -63,14 +63,14 @@ class _AssignPatientToDoctorDialogState
     if (ok) {
       Navigator.pop(context);
       messenger?.showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text(AdminDoctorsStrings.assignSuccess),
           backgroundColor: AdminColors.success,
         ),
       );
     } else {
       messenger?.showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text(AdminDoctorsStrings.assignFailed),
           backgroundColor: AdminColors.danger,
         ),
@@ -203,13 +203,13 @@ class _AssignPatientToDoctorDialogState
                             style: GoogleFonts.inter(fontSize: 12),
                           ),
                           trailing: isThisDoctor
-                              ? Icon(Icons.check_circle,
+                              ? const Icon(Icons.check_circle,
                                   color: AdminColors.success)
                               : TextButton(
                                   onPressed: _busy
                                       ? null
                                       : () => _assign(doc.id),
-                                  child: Text(AdminDoctorsStrings.assign),
+                                  child: const Text(AdminDoctorsStrings.assign),
                                 ),
                         );
                       },

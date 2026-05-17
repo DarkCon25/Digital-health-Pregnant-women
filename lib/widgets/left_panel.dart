@@ -42,7 +42,7 @@ class LeftPanel extends StatelessWidget {
                   width: 40,
                   height: 2,
                   decoration: BoxDecoration(
-                    color: AppColors.white.withOpacity(0.4),
+                    color: AppColors.white.withValues(alpha: 0.4),
                     borderRadius: BorderRadius.circular(1),
                   ),
                 ),
@@ -81,7 +81,7 @@ class LeftPanel extends StatelessWidget {
                 // ── Divider
                 Container(
                   height: 1,
-                  color: AppColors.white.withOpacity(0.15),
+                  color: AppColors.white.withValues(alpha: 0.15),
                 ),
                 const SizedBox(height: 28),
 
@@ -124,9 +124,9 @@ class _Logo extends StatelessWidget {
         AppLogo(
           size: 80,
           isCircle: true,
-          borderColor: AppColors.white.withOpacity(0.5),
+          borderColor: AppColors.white.withValues(alpha: 0.5),
           borderWidth: 2.5,
-          backgroundColor: AppColors.white.withOpacity(0.1),
+          backgroundColor: AppColors.white.withValues(alpha: 0.1),
         ),
         const SizedBox(height: 16),
 
@@ -181,7 +181,7 @@ class _FeatureCards extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return const Row(
       children: [
         Expanded(
           child: _FeatureCard(
@@ -190,7 +190,7 @@ class _FeatureCards extends StatelessWidget {
             subtitle: 'Température • Tension • Glycémie',
           ),
         ),
-        const SizedBox(width: 12),
+        SizedBox(width: 12),
         Expanded(
           child: _FeatureCard(
             icon: Icons.notifications_outlined,
@@ -198,7 +198,7 @@ class _FeatureCards extends StatelessWidget {
             subtitle: 'Réservation • Rappels • Notifications',
           ),
         ),
-        const SizedBox(width: 12),
+        SizedBox(width: 12),
         Expanded(
           child: _FeatureCard(
             icon: Icons.shield_outlined,
@@ -329,7 +329,7 @@ class _StatDivider extends StatelessWidget {
     return Container(
       width: 1,
       height: 32,
-      color: AppColors.white.withOpacity(0.2),
+      color: AppColors.white.withValues(alpha: 0.2),
     );
   }
 }
@@ -354,7 +354,7 @@ class _DecorativeCircles extends StatelessWidget {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(
-                color: AppColors.white.withOpacity(0.08),
+                color: AppColors.white.withValues(alpha: 0.08),
                 width: 60,
               ),
             ),
@@ -369,7 +369,7 @@ class _DecorativeCircles extends StatelessWidget {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(
-                color: AppColors.white.withOpacity(0.06),
+                color: AppColors.white.withValues(alpha: 0.06),
                 width: 40,
               ),
             ),
@@ -384,7 +384,7 @@ class _DecorativeCircles extends StatelessWidget {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(
-                color: AppColors.white.withOpacity(0.1),
+                color: AppColors.white.withValues(alpha: 0.1),
                 width: 1.5,
               ),
             ),
@@ -394,3 +394,4 @@ class _DecorativeCircles extends StatelessWidget {
     );
   }
 }
+

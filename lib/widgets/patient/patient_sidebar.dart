@@ -43,15 +43,23 @@ class PatientSidebar extends StatelessWidget {
       (PatientPage.medicalFile, Icons.folder_outlined, s.navMedicalFile),
       (PatientPage.analyses, Icons.science_outlined, s.navAnalyses),
       (PatientPage.fetalImages, Icons.child_care_outlined, s.navFetalImages),
-      (PatientPage.appointments, Icons.calendar_month_outlined, s.navAppointments),
+      (
+        PatientPage.appointments,
+        Icons.calendar_month_outlined,
+        s.navAppointments
+      ),
       (PatientPage.emergency, Icons.emergency_outlined, s.navEmergency),
-      (PatientPage.notifications, Icons.notifications_none_outlined, s.navNotifications),
+      (
+        PatientPage.notifications,
+        Icons.notifications_none_outlined,
+        s.navNotifications
+      ),
       (PatientPage.profile, Icons.person_outline, s.navProfile),
     ];
 
     return Container(
       width: 220,
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: PatientColors.sidebarBg,
         border: Border(
           right: BorderSide(color: PatientColors.sidebarBorder),
@@ -94,9 +102,9 @@ class PatientSidebar extends StatelessWidget {
                   Container(
                     width: 38,
                     height: 38,
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       shape: BoxShape.circle,
-                      gradient: const LinearGradient(
+                      gradient: LinearGradient(
                         colors: [
                           PatientColors.primary,
                           PatientColors.primaryDark,
@@ -164,8 +172,8 @@ class PatientSidebar extends StatelessWidget {
           ),
 
           // Language switcher
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Center(child: LanguageSwitcher(compact: true)),
           ),
 
@@ -212,7 +220,6 @@ class _SidebarItem extends StatelessWidget {
     required this.selected,
     required this.onTap,
     this.isEmergency = false,
-    this.danger = false,
   });
 
   final IconData icon;
@@ -220,7 +227,6 @@ class _SidebarItem extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
   final bool isEmergency;
-  final bool danger;
 
   @override
   Widget build(BuildContext context) {
@@ -228,12 +234,7 @@ class _SidebarItem extends StatelessWidget {
     Color bgColor;
     if (isEmergency) {
       fgColor = selected ? Colors.white : PatientColors.critical;
-      bgColor = selected
-          ? PatientColors.critical
-          : PatientColors.criticalLight;
-    } else if (danger) {
-      fgColor = PatientColors.critical;
-      bgColor = Colors.transparent;
+      bgColor = selected ? PatientColors.critical : PatientColors.criticalLight;
     } else {
       fgColor = selected ? PatientColors.primary : PatientColors.textSecondary;
       bgColor = selected ? PatientColors.sidebarActiveBg : Colors.transparent;
@@ -260,8 +261,7 @@ class _SidebarItem extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: GoogleFonts.inter(
                   fontSize: 13,
-                  fontWeight:
-                      selected ? FontWeight.w700 : FontWeight.w500,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                   color: fgColor,
                 ),
               ),

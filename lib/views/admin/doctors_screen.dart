@@ -154,7 +154,7 @@ class _DoctorsScreenState extends State<DoctorsScreen> {
                             ),
                           ),
                           ChoiceChip(
-                            label: Text(AdminDoctorsStrings.filterAll),
+                            label: const Text(AdminDoctorsStrings.filterAll),
                             selected: _specialtyFilter.isEmpty,
                             onSelected: (_) =>
                                 setState(() => _specialtyFilter = ''),
@@ -393,7 +393,7 @@ class _DoctorsScreenState extends State<DoctorsScreen> {
             const SizedBox(width: 8),
             DropdownButton<String>(
               value: _statusFilter,
-              items: [
+              items: const [
                 DropdownMenuItem(
                   value: '',
                   child: Text(AdminDoctorsStrings.filterAll),

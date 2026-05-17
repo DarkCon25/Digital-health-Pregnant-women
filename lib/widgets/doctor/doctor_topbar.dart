@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+﻿import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -48,71 +48,80 @@ class _DoctorTopBarState extends State<DoctorTopBar> {
   @override
   Widget build(BuildContext context) {
     final service = context.read<DoctorService>();
-
-    return Container(
-      height: 68,
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      decoration: BoxDecoration(
-        color: DoctorColors.topbarBg,
-        border: const Border(
-          bottom: BorderSide(color: DoctorColors.cardBorder),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            flex: 2,
-            child: Text(
-              widget.title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.inter(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: DoctorColors.textPrimary,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 1000;
+        return Container(
+          height: 68,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: DoctorColors.topbarBg,
+            border: const Border(
+              bottom: BorderSide(color: DoctorColors.cardBorder),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
               ),
-            ),
+            ],
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            flex: 3,
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 360),
-                child: _buildSearch(),
+          child: Row(
+            children: [
+              if (!compact)
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    widget.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.inter(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: DoctorColors.textPrimary,
+                    ),
+                  ),
+                ),
+              if (!compact) const SizedBox(width: 12),
+              Expanded(
+                flex: compact ? 4 : 3,
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: compact ? 280 : 360),
+                    child: _buildSearch(),
+                  ),
+                ),
               ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          if (widget.openEmergencyCount > 0 && widget.onEmergencyTap != null)
-            Padding(
-              padding: const EdgeInsets.only(right: 4),
-              child: _EmergencyButton(
-                count: widget.openEmergencyCount,
-                onTap: widget.onEmergencyTap!,
+              const SizedBox(width: 8),
+              if (widget.openEmergencyCount > 0 && widget.onEmergencyTap != null)
+                Padding(
+                  padding: const EdgeInsets.only(right: 4),
+                  child: _EmergencyButton(
+                    count: widget.openEmergencyCount,
+                    onTap: widget.onEmergencyTap!,
+                  ),
+                ),
+              _NotificationButton(
+                service: service,
+                onTap: widget.onNotificationsTap,
               ),
-            ),
-          _NotificationButton(
-            service: service,
-            onTap: widget.onNotificationsTap,
+              const SizedBox(width: 8),
+              if (!compact)
+                Flexible(
+                  child: _ProfileBlock(
+                    doctorName: widget.doctorName,
+                    roleLine:
+                        widget.specialtySubtitle ?? DoctorStrings.doctorRoleFallback,
+                  ),
+                )
+              else
+                _CompactAvatar(name: widget.doctorName),
+            ],
           ),
-          const SizedBox(width: 8),
-          Flexible(
-            child: _ProfileBlock(
-              doctorName: widget.doctorName,
-              roleLine: widget.specialtySubtitle ?? DoctorStrings.doctorRoleFallback,
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -164,6 +173,37 @@ class _DoctorTopBarState extends State<DoctorTopBar> {
   }
 }
 
+class _CompactAvatar extends StatelessWidget {
+  const _CompactAvatar({required this.name});
+
+  final String name;
+
+  @override
+  Widget build(BuildContext context) {
+    final initial = name.trim().isEmpty ? '?' : name.trim()[0].toUpperCase();
+    return Container(
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [DoctorColors.primary, DoctorColors.primaryLight],
+        ),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Center(
+        child: Text(
+          initial,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+            fontSize: 14,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _EmergencyButton extends StatelessWidget {
   const _EmergencyButton({required this.count, required this.onTap});
 
@@ -189,7 +229,7 @@ class _EmergencyButton extends StatelessWidget {
           clipBehavior: Clip.none,
           alignment: Alignment.center,
           children: [
-            Icon(Icons.emergency_outlined, color: DoctorColors.critical, size: 20),
+            const Icon(Icons.emergency_outlined, color: DoctorColors.critical, size: 20),
             Positioned(
               top: -4,
               right: -4,
@@ -250,7 +290,7 @@ class _NotificationButton extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: DoctorColors.cardBorder),
                 ),
-                child: Icon(
+                child: const Icon(
                   Icons.notifications_outlined,
                   color: DoctorColors.textSecondary,
                   size: 20,
@@ -306,7 +346,7 @@ class _ProfileBlock extends StatelessWidget {
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            gradient: LinearGradient(
+            gradient: const LinearGradient(
               colors: [
                 DoctorColors.primary,
                 DoctorColors.primaryLight,
@@ -371,10 +411,11 @@ class _ProfileBlock extends StatelessWidget {
   static String _initialLetter(String name) {
     final cleaned = name
         .replaceAll(DoctorStrings.doctorPrefix, '')
-        .replaceAll('د. ', '')
+        .replaceAll('Dr. ', '')
         .replaceAll('Dr. ', '')
         .trim();
     if (cleaned.isEmpty) return '?';
     return cleaned[0].toUpperCase();
   }
 }
+

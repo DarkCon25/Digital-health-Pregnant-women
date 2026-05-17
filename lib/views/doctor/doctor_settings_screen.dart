@@ -40,7 +40,7 @@ class _DoctorSettingsScreenState extends State<DoctorSettingsScreen> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              DoctorPageHeader(
+              const DoctorPageHeader(
                 title: DoctorStrings.settingsTitle,
                 subtitle: DoctorStrings.settingsPageSubtitle,
               ),
@@ -116,7 +116,7 @@ class _DoctorSettingsScreenState extends State<DoctorSettingsScreen> {
                 height: 72,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(16),
-                  gradient: LinearGradient(
+                  gradient: const LinearGradient(
                     colors: [
                       DoctorColors.primary,
                       DoctorColors.primaryLight,

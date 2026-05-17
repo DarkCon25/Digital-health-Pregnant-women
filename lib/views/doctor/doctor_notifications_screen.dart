@@ -21,7 +21,7 @@ class DoctorNotificationsScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          DoctorPageHeader(
+          const DoctorPageHeader(
             title: DoctorStrings.notificationsTitle,
             subtitle: DoctorStrings.notificationsPageSubtitle,
           ),

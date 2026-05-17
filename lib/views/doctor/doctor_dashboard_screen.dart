@@ -251,7 +251,7 @@ class _DashboardHomeTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          DoctorPageHeader(
+          const DoctorPageHeader(
             title: DoctorStrings.pageDashboard,
             subtitle: DoctorStrings.dashboardPageSubtitle,
           ),

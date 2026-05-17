@@ -21,7 +21,7 @@ class NurseNotificationsScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          NursePageHeader(
+          const NursePageHeader(
             title: NurseStrings.pageNotifications,
             subtitle: NurseStrings.reportsSub,
           ),

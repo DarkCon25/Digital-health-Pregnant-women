@@ -21,7 +21,7 @@ class IntensiveCareScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          NursePageHeader(
+          const NursePageHeader(
             title: NurseStrings.pageIcu,
             subtitle: NurseStrings.statIcu,
           ),

@@ -115,7 +115,7 @@ class AppointmentCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.schedule,
                       size: 12,
                       color: PatientColors.textLight,

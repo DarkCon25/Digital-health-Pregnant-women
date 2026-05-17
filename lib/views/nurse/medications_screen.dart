@@ -25,7 +25,7 @@ class MedicationsScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          NursePageHeader(
+          const NursePageHeader(
             title: NurseStrings.pageMedications,
             subtitle: NurseStrings.tabAllMeds,
           ),
@@ -33,21 +33,21 @@ class MedicationsScreen extends StatelessWidget {
           Row(
             children: [
               ActionChip(
-                label: Text(NurseStrings.tabDueToday),
+                label: const Text(NurseStrings.tabDueToday),
                 onPressed: () => vm.setTab(0),
                 backgroundColor:
                     vm.tabIndex == 0 ? NurseColors.primary.withValues(alpha: 0.2) : null,
               ),
               const SizedBox(width: 8),
               ActionChip(
-                label: Text(NurseStrings.tabAllMeds),
+                label: const Text(NurseStrings.tabAllMeds),
                 onPressed: () => vm.setTab(1),
                 backgroundColor:
                     vm.tabIndex == 1 ? NurseColors.primary.withValues(alpha: 0.2) : null,
               ),
               const SizedBox(width: 8),
               ActionChip(
-                label: Text(NurseStrings.tabAdministered),
+                label: const Text(NurseStrings.tabAdministered),
                 onPressed: () => vm.setTab(2),
                 backgroundColor:
                     vm.tabIndex == 2 ? NurseColors.primary.withValues(alpha: 0.2) : null,

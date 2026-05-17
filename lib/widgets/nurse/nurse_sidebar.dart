@@ -13,6 +13,7 @@ enum NursePage {
   medications,
   emergency,
   rooms,
+  babies,
   appointments,
   messages,
   notifications,
@@ -99,7 +100,8 @@ class NurseSidebar extends StatelessWidget {
                 children: [
                   CircleAvatar(
                     radius: 22,
-                    backgroundColor: NurseColors.primary.withValues(alpha: 0.25),
+                    backgroundColor:
+                        NurseColors.primary.withValues(alpha: 0.25),
                     child: Text(
                       nurseName.isNotEmpty ? nurseName[0].toUpperCase() : 'N',
                       style: GoogleFonts.inter(
@@ -155,7 +157,9 @@ class NurseSidebar extends StatelessWidget {
                 _item(Icons.emergency_outlined, NurseStrings.pageEmergency,
                     NursePage.emergency,
                     badge: openEmergencyCount),
-                _item(Icons.bed_outlined, NurseStrings.pageRooms, NursePage.rooms),
+                _item(Icons.bed_outlined, NurseStrings.pageRooms,
+                    NursePage.rooms),
+                _item(Icons.child_care_outlined, NurseStrings.pageBabies, NursePage.babies),
                 _item(Icons.local_hospital_outlined, NurseStrings.pageIcu,
                     NursePage.icu),
                 _section(NurseStrings.navCare),
@@ -164,8 +168,7 @@ class NurseSidebar extends StatelessWidget {
                 _section(NurseStrings.navComm),
                 _item(Icons.chat_bubble_outline, NurseStrings.pageMessages,
                     NursePage.messages,
-                    badge: unreadMessages,
-                    dotOnly: true),
+                    badge: unreadMessages, dotOnly: true),
                 _item(Icons.notifications_outlined,
                     NurseStrings.pageNotifications, NursePage.notifications,
                     badge: notificationBadge),

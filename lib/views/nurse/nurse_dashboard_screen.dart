@@ -1,4 +1,4 @@
-import 'dart:ui' as ui;
+﻿import 'dart:ui' as ui;
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -33,6 +33,7 @@ import 'patient_details_screen.dart';
 import 'patient_monitoring_screen.dart';
 import 'patients_list_screen.dart';
 import 'rooms_screen.dart';
+import 'babies_screen.dart';
 
 class NurseDashboardScreen extends StatelessWidget {
   const NurseDashboardScreen({super.key});
@@ -110,6 +111,8 @@ class _NurseShellState extends State<_NurseShell> {
         return NurseStrings.pageEmergency;
       case NursePage.rooms:
         return NurseStrings.pageRooms;
+      case NursePage.babies:
+        return 'Babies / Nouveau-nes';
       case NursePage.appointments:
         return NurseStrings.pageAppointments;
       case NursePage.messages:
@@ -213,8 +216,7 @@ class _NurseShellState extends State<_NurseShell> {
       case NursePage.dashboard:
         return _DashboardTab(
           searchQuery: _topSearch,
-          onViewAllAlerts: () =>
-              setState(() => _page = NursePage.emergency),
+          onViewAllAlerts: () => setState(() => _page = NursePage.emergency),
         );
       case NursePage.patients:
         return PatientsListScreen(
@@ -239,6 +241,8 @@ class _NurseShellState extends State<_NurseShell> {
         );
       case NursePage.rooms:
         return const RoomsScreen();
+      case NursePage.babies:
+        return const NurseBabiesScreen();
       case NursePage.appointments:
         return const NurseAppointmentsScreen();
       case NursePage.messages:
@@ -311,7 +315,7 @@ class _DashboardTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          NursePageHeader(
+          const NursePageHeader(
             title: NurseStrings.pageDashboard,
             subtitle: NurseStrings.portalSubtitle,
           ),
@@ -320,8 +324,7 @@ class _DashboardTab extends StatelessWidget {
             builder: (context, constraints) {
               final w = constraints.maxWidth;
               final cols = w > 1100 ? 4 : (w > 720 ? 2 : 1);
-              double cellW() =>
-                  cols == 1 ? w : (w - (cols - 1) * 16) / cols;
+              double cellW() => cols == 1 ? w : (w - (cols - 1) * 16) / cols;
               return Wrap(
                 spacing: 16,
                 runSpacing: 16,
@@ -389,7 +392,7 @@ class _DashboardTab extends StatelessWidget {
                           ),
                           TextButton(
                             onPressed: onViewAllAlerts,
-                            child: Text(NurseStrings.viewAllAlerts),
+                            child: const Text(NurseStrings.viewAllAlerts),
                           ),
                         ],
                       ),
@@ -486,7 +489,8 @@ class _DashboardTab extends StatelessWidget {
           trailing: Chip(
             label: Text(
               high ? NurseStrings.priorityHigh : NurseStrings.priorityMedium,
-              style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w800),
+              style:
+                  GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w800),
             ),
             backgroundColor: high
                 ? NurseColors.critical.withValues(alpha: 0.15)
@@ -503,9 +507,8 @@ class _DashboardTab extends StatelessWidget {
     String status,
     Color color,
   ) {
-    final n = vm.allPatients
-        .where((p) => p.status.toLowerCase() == status)
-        .length;
+    final n =
+        vm.allPatients.where((p) => p.status.toLowerCase() == status).length;
     final total = vm.allPatients.isEmpty ? 1 : vm.allPatients.length;
     final pct = (n / total).clamp(0.0, 1.0);
     return Padding(
@@ -546,7 +549,7 @@ class _VitalsPickerTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          NursePageHeader(
+          const NursePageHeader(
             title: NurseStrings.pageVitals,
             subtitle: NurseStrings.selectPatient,
           ),
@@ -570,13 +573,14 @@ class _VitalsPickerTab extends StatelessWidget {
                     final p = vm.filtered[i];
                     return ListTile(
                       title: Text(p.fullName),
-                      subtitle: Text('${NurseStrings.colRoom}: ${p.roomNumber ?? '—'}'),
+                      subtitle: Text(
+                          '${NurseStrings.colRoom}: ${p.roomNumber ?? '—'}'),
                       trailing: FilledButton(
                         onPressed: () => onOpen(p.id),
                         style: FilledButton.styleFrom(
                           backgroundColor: NurseColors.primary,
                         ),
-                        child: Text(NurseStrings.updateVitals),
+                        child: const Text(NurseStrings.updateVitals),
                       ),
                     );
                   },
@@ -588,3 +592,4 @@ class _VitalsPickerTab extends StatelessWidget {
     );
   }
 }
+

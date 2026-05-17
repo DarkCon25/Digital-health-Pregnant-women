@@ -17,7 +17,7 @@ class AppLogo extends StatelessWidget {
   });
 
   // ✅ المسار الصحيح بدون lib/
-  static const String _logoPath = 'assets/images/HerCare-v1.png';
+  static const String _logoPath = 'lib/assets/images/HerCare-v1.png';
 
   // ── Border Radius حسب الشكل ─────────────────
   BorderRadius get _radius => isCircle
@@ -30,7 +30,7 @@ class AppLogo extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: backgroundColor ?? const Color(0xFF2563EB).withOpacity(0.15),
+        color: backgroundColor ?? const Color(0xFF2563EB).withValues(alpha: 0.15),
         shape: isCircle ? BoxShape.circle : BoxShape.rectangle,
         borderRadius: isCircle ? null : _radius,
       ),
@@ -45,14 +45,26 @@ class AppLogo extends StatelessWidget {
   // ── الصورة الأساسية ──────────────────────────
   Widget _image({double? customSize}) {
     final s = customSize ?? size;
-    return ClipRRect(
-      borderRadius: _radius,
-      child: Image.asset(
-        _logoPath,
-        width: s,
-        height: s,
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => _fallback(),
+    return Container(
+      padding: EdgeInsets.all((s * 0.06).clamp(2, 8)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: _radius,
+        border: Border.all(
+          color: const Color(0x11000000),
+          width: 1,
+        ),
+      ),
+      child: ClipRRect(
+        borderRadius: _radius,
+        child: Image.asset(
+          _logoPath,
+          width: s,
+          height: s,
+          fit: BoxFit.contain,
+          filterQuality: FilterQuality.high,
+          errorBuilder: (_, __, ___) => _fallback(),
+        ),
       ),
     );
   }
@@ -91,3 +103,4 @@ class AppLogo extends StatelessWidget {
     );
   }
 }
+

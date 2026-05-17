@@ -9,7 +9,6 @@ enum AdminPage {
   doctors,
   nurses,
   patients,
-  babies,
   rooms,
   messages,
   accounts,
@@ -65,7 +64,6 @@ class AdminSidebar extends StatelessWidget {
                       AdminPage.nurses),
                   _item(Icons.people_outline_rounded, AppStrings.patients,
                       AdminPage.patients),
-                  _item(Icons.child_care, 'Babies / Bébés', AdminPage.babies),
                   _item(Icons.bed_outlined, AppStrings.rooms, AdminPage.rooms),
                   const SizedBox(height: 4),
                   _section(AppStrings.communication),
@@ -146,7 +144,7 @@ class AdminSidebar extends StatelessWidget {
           style: GoogleFonts.inter(
             fontSize: 10,
             fontWeight: FontWeight.w700,
-            color: AdminColors.sidebarText.withOpacity(0.5),
+            color: AdminColors.sidebarText.withValues(alpha: 0.5),
             letterSpacing: 1,
           ),
         ),
@@ -291,3 +289,4 @@ class _SidebarTileState extends State<_SidebarTile> {
     );
   }
 }
+

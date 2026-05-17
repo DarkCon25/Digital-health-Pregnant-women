@@ -84,7 +84,7 @@ class _AddPatientScreenState extends State<AddPatientScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              DoctorPageHeader(
+              const DoctorPageHeader(
                 title: DoctorStrings.pageAddPatient,
                 subtitle: DoctorStrings.linkPatientDescription,
               ),

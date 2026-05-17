@@ -21,7 +21,7 @@ class MyPatientsScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          DoctorPageHeader(
+          const DoctorPageHeader(
             title: DoctorStrings.patientsListTitle,
             subtitle: DoctorStrings.patientsListSubtitle,
           ),
@@ -54,6 +54,7 @@ class MyPatientsScreen extends StatelessWidget {
                         key: ValueKey('room_${vm.roomFilter}'),
                         initialValue:
                             vm.roomFilter.isEmpty ? '' : vm.roomFilter,
+                        isExpanded: true,
                         decoration: InputDecoration(
                           labelText: DoctorStrings.filterRoom,
                           filled: true,
@@ -79,6 +80,7 @@ class MyPatientsScreen extends StatelessWidget {
                         key: ValueKey(vm.statusFilter),
                         initialValue:
                             vm.statusFilter.isEmpty ? '' : vm.statusFilter,
+                        isExpanded: true,
                         decoration: InputDecoration(
                           labelText: DoctorStrings.filterStatus,
                           filled: true,
@@ -113,7 +115,7 @@ class MyPatientsScreen extends StatelessWidget {
                 return Row(
                   children: [
                     Expanded(
-                      flex: 2,
+                      flex: 3,
                       child: TextField(
                         onChanged: vm.setSearch,
                         decoration: InputDecoration(
@@ -131,12 +133,13 @@ class MyPatientsScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    SizedBox(
-                      width: 140,
+                    Expanded(
+                      flex: 1,
                       child: DropdownButtonFormField<String>(
                         key: ValueKey('room_${vm.roomFilter}'),
                         initialValue:
                             vm.roomFilter.isEmpty ? '' : vm.roomFilter,
+                        isExpanded: true,
                         decoration: InputDecoration(
                           labelText: DoctorStrings.filterRoom,
                           filled: true,
@@ -159,12 +162,13 @@ class MyPatientsScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    SizedBox(
-                      width: 150,
+                    Expanded(
+                      flex: 1,
                       child: DropdownButtonFormField<String>(
                         key: ValueKey(vm.statusFilter),
                         initialValue:
                             vm.statusFilter.isEmpty ? '' : vm.statusFilter,
+                        isExpanded: true,
                         decoration: InputDecoration(
                           labelText: DoctorStrings.filterStatus,
                           filled: true,

@@ -34,19 +34,16 @@ class DoctorService {
         .where('assignedDoctorId', isEqualTo: doctorId)
         .snapshots()
         .map((snap) {
-      final list = snap.docs
-          .map((d) => PatientModel.fromMap(d.data()))
-          .toList();
+      final list =
+          snap.docs.map((d) => PatientModel.fromMap(d.data())).toList();
       list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       return list;
     });
   }
 
   Future<PatientModel?> getPatient(String patientId) async {
-    final doc = await _db
-        .collection(AppConstants.usersCollection)
-        .doc(patientId)
-        .get();
+    final doc =
+        await _db.collection(AppConstants.usersCollection).doc(patientId).get();
     if (!doc.exists || doc.data() == null) return null;
     return PatientModel.fromMap(doc.data()!);
   }
@@ -236,6 +233,60 @@ class DoctorService {
     await incrementVisitCount(patientId);
   }
 
+  Future<void> deleteConsultation({
+    required String patientId,
+    required String consultationId,
+    String? doctorId,
+  }) async {
+    final ref = _db
+        .collection(AppConstants.medicalFilesCollection)
+        .doc(patientId)
+        .collection(AppConstants.consultationsSubcollection)
+        .doc(consultationId);
+    final snap = await ref.get();
+    if (!snap.exists) return;
+    final data = snap.data();
+    final ownerDoctorId = data?['doctorId'] as String?;
+    if (doctorId != null &&
+        doctorId.isNotEmpty &&
+        ownerDoctorId != null &&
+        ownerDoctorId != doctorId) {
+      throw Exception('You can only delete your own consultations');
+    }
+    await ref.delete();
+    await _db
+        .collection(AppConstants.medicalFilesCollection)
+        .doc(patientId)
+        .update({
+      'visitCount': FieldValue.increment(-1),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Future<void> updatePatientStatus({
+    required String patientId,
+    required String status,
+  }) async {
+    await _db.collection(AppConstants.usersCollection).doc(patientId).update({
+      'status': status.trim(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Future<void> updatePatientNotes({
+    required String patientId,
+    required String notes,
+  }) async {
+    await ensureMedicalFile(patientId);
+    await _db
+        .collection(AppConstants.medicalFilesCollection)
+        .doc(patientId)
+        .set({
+      'notes': notes.trim(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
   // ── Emergency alerts (filter to doctor’s patients client-side) ───
 
   Stream<List<EmergencyAlertModel>> watchEmergencyAlerts() {
@@ -280,8 +331,10 @@ class DoctorService {
   }) async {
     String doctorName = '';
     try {
-      final doctorDoc =
-          await _db.collection(AppConstants.usersCollection).doc(doctorId).get();
+      final doctorDoc = await _db
+          .collection(AppConstants.usersCollection)
+          .doc(doctorId)
+          .get();
       final doctorData = doctorDoc.data();
       if (doctorData != null) {
         doctorName =
@@ -378,9 +431,7 @@ class DoctorService {
   }
 
   Stream<QuerySnapshot> staffContactsStream() {
-    return _db
-        .collection(AppConstants.usersCollection)
-        .where('role', whereIn: [
+    return _db.collection(AppConstants.usersCollection).where('role', whereIn: [
       AppConstants.roleNurse,
       AppConstants.roleDoctor,
       AppConstants.roleAdmin,
@@ -454,9 +505,8 @@ class DoctorService {
         .where('doctorId', isEqualTo: doctorId)
         .snapshots()
         .map((snap) {
-      final list = snap.docs
-          .map((d) => LabTestModel.fromDoc(d.id, d.data()))
-          .toList();
+      final list =
+          snap.docs.map((d) => LabTestModel.fromDoc(d.id, d.data())).toList();
       list.sort((a, b) => b.testDate.compareTo(a.testDate));
       return list;
     });
@@ -470,7 +520,6 @@ class DoctorService {
       (list) => list.where((t) => t.patientId == patientId).toList(),
     );
   }
-
 
   Future<void> addLabTest(LabTestModel model) async {
     await _db.collection(AppConstants.labTestsCollection).add(model.toMap());
@@ -527,6 +576,66 @@ class DoctorService {
     });
   }
 
+  /// Update patient's assigned room (doctor assigns room to patient)
+  /// تحديث الغرفة المخصصة للمريضة (الطبيب يختار الغرفة)
+  Future<void> updatePatientRoom({
+    required String patientId,
+    required String roomNumber,
+  }) async {
+    await _db.runTransaction((tx) async {
+      final patientRef = _db.collection(AppConstants.usersCollection).doc(patientId);
+      final patientSnap = await tx.get(patientRef);
+      if (!patientSnap.exists) {
+        throw Exception('Patient not found');
+      }
+
+      final patientData = patientSnap.data() ?? <String, dynamic>{};
+      final patientName =
+          '${patientData['firstName'] ?? ''} ${patientData['lastName'] ?? ''}'.trim();
+      final previousRoomNumber = patientData['roomNumber'] as String?;
+
+      // Release previous room (if any and different).
+      if (previousRoomNumber != null &&
+          previousRoomNumber.isNotEmpty &&
+          previousRoomNumber != roomNumber) {
+        final prevRoomQuery = await _db
+            .collection(AppConstants.roomsCollection)
+            .where('number', isEqualTo: previousRoomNumber)
+            .limit(1)
+            .get();
+        if (prevRoomQuery.docs.isNotEmpty) {
+          tx.update(prevRoomQuery.docs.first.reference, {
+            'status': 'available',
+            'patientName': null,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+        }
+      }
+
+      // Occupy target room.
+      final roomQuery = await _db
+          .collection(AppConstants.roomsCollection)
+          .where('number', isEqualTo: roomNumber)
+          .limit(1)
+          .get();
+      if (roomQuery.docs.isEmpty) {
+        throw Exception('Room not found');
+      }
+
+      tx.update(roomQuery.docs.first.reference, {
+        'status': 'occupied',
+        'patientName': patientName.isEmpty ? null : patientName,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      // Link room to patient.
+      tx.update(patientRef, {
+        'roomNumber': roomNumber,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    });
+  }
+
   // ── ICU cases (حالات العناية المركزة) ─────────────────────────────
 
   Stream<List<IcuCaseModel>> watchIcuCases(String doctorId) {
@@ -535,9 +644,8 @@ class DoctorService {
         .where('doctorId', isEqualTo: doctorId)
         .snapshots()
         .map((snap) {
-      final list = snap.docs
-          .map((d) => IcuCaseModel.fromDoc(d.id, d.data()))
-          .toList();
+      final list =
+          snap.docs.map((d) => IcuCaseModel.fromDoc(d.id, d.data())).toList();
       list.sort((a, b) {
         final ta = a.admittedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
         final tb = b.admittedAt ?? DateTime.fromMillisecondsSinceEpoch(0);

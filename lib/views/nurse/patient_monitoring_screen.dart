@@ -246,7 +246,7 @@ class _PatientMonitoringBodyState extends State<_PatientMonitoringBody> {
                           await vm.save();
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
+                              const SnackBar(
                                 content: Text(NurseStrings.saveUpdates),
                                 backgroundColor: NurseColors.success,
                               ),

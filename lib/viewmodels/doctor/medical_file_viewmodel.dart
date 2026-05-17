@@ -25,6 +25,20 @@ class MedicalFileViewModel extends ChangeNotifier {
   bool loading = true;
   bool saving = false;
   String? error;
+  String? successMessage;
+
+  // ── Edit mode tracking
+  bool isEditMode = false;
+  bool isUpdatingStatus = false;
+  bool isUpdatingNotes = false;
+
+  // ── Permissions
+  bool canEditPatientInfo = true;
+  bool canUpdateVitals = true;
+  bool canAddConsultation = true;
+  bool canEditConsultation = true;
+  bool canDeleteConsultation = true;
+  bool canPrintPrescription = true;
 
   StreamSubscription<MedicalFileModel>? _medSub;
   StreamSubscription<List<ConsultationModel>>? _consSub;
@@ -32,6 +46,7 @@ class MedicalFileViewModel extends ChangeNotifier {
   Future<void> init() async {
     loading = true;
     error = null;
+    successMessage = null;
     notifyListeners();
 
     try {
@@ -68,8 +83,17 @@ class MedicalFileViewModel extends ChangeNotifier {
     required double? glucose,
     required double? temp,
   }) async {
+    if (!canUpdateVitals) {
+      error = 'You do not have permission to update vitals';
+      notifyListeners();
+      return false;
+    }
+
     saving = true;
+    error = null;
+    successMessage = null;
     notifyListeners();
+
     try {
       await _service.updateVitals(
         patientId: patientId,
@@ -82,6 +106,8 @@ class MedicalFileViewModel extends ChangeNotifier {
       );
       monitoringHistory =
           await _service.getPregnancyMonitoringHistory(patientId, limit: 30);
+
+      successMessage = 'Vitals updated successfully';
       saving = false;
       notifyListeners();
       return true;
@@ -98,12 +124,20 @@ class MedicalFileViewModel extends ChangeNotifier {
     String? diagnosis,
     required DateTime visitDate,
   }) async {
+    if (!canAddConsultation) {
+      error = 'You do not have permission to add consultations';
+      notifyListeners();
+      return false;
+    }
+
     if (notes.trim().isEmpty) {
       error = 'Consultation note cannot be empty';
       notifyListeners();
       return false;
     }
     saving = true;
+    error = null;
+    successMessage = null;
     notifyListeners();
     try {
       await _service.addConsultation(
@@ -113,6 +147,8 @@ class MedicalFileViewModel extends ChangeNotifier {
         diagnosis: diagnosis,
         visitDate: visitDate,
       );
+
+      successMessage = 'Consultation registered successfully';
       saving = false;
       notifyListeners();
       return true;
@@ -128,6 +164,117 @@ class MedicalFileViewModel extends ChangeNotifier {
     monitoringHistory =
         await _service.getPregnancyMonitoringHistory(patientId, limit: 30);
     notifyListeners();
+  }
+
+  // ── Toggle edit mode
+  void toggleEditMode() {
+    isEditMode = !isEditMode;
+    if (!isEditMode) {
+      error = null;
+    }
+    notifyListeners();
+  }
+
+  void cancelEdit() {
+    isEditMode = false;
+    error = null;
+    successMessage = null;
+    notifyListeners();
+  }
+
+  void clearMessages() {
+    error = null;
+    successMessage = null;
+    notifyListeners();
+  }
+
+  // ── Advanced update operations
+  Future<bool> updatePatientStatus(String newStatus) async {
+    if (!canEditPatientInfo) {
+      error = 'No permission to update patient status';
+      notifyListeners();
+      return false;
+    }
+
+    isUpdatingStatus = true;
+    error = null;
+    notifyListeners();
+
+    try {
+      await _service.updatePatientStatus(
+        patientId: patientId,
+        status: newStatus,
+      );
+
+      isUpdatingStatus = false;
+      successMessage = 'Patient status updated';
+      notifyListeners();
+      return true;
+    } catch (e) {
+      error = e.toString();
+      isUpdatingStatus = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> updatePatientNotes(String notes) async {
+    if (!canEditPatientInfo) {
+      error = 'No permission to update notes';
+      notifyListeners();
+      return false;
+    }
+
+    isUpdatingNotes = true;
+    error = null;
+    notifyListeners();
+
+    try {
+      await _service.updatePatientNotes(
+        patientId: patientId,
+        notes: notes,
+      );
+
+      isUpdatingNotes = false;
+      successMessage = 'Notes updated successfully';
+      notifyListeners();
+      return true;
+    } catch (e) {
+      error = e.toString();
+      isUpdatingNotes = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> deleteConsultation(String consultationId) async {
+    if (!canDeleteConsultation) {
+      error = 'No permission to delete consultations';
+      notifyListeners();
+      return false;
+    }
+
+    saving = true;
+    error = null;
+    notifyListeners();
+
+    try {
+      await _service.deleteConsultation(
+        patientId: patientId,
+        consultationId: consultationId,
+        doctorId: doctorId,
+      );
+
+      saving = false;
+      successMessage = 'Consultation deleted';
+      notifyListeners();
+      return true;
+    } catch (e) {
+      error = e.toString();
+      saving = false;
+      notifyListeners();
+      return false;
+    }
   }
 
   @override

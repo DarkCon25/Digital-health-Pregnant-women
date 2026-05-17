@@ -29,7 +29,7 @@ class PatientTopbar extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 24),
       decoration: BoxDecoration(
         color: PatientColors.topbarBg,
-        border: Border(
+        border: const Border(
           bottom: BorderSide(color: PatientColors.cardBorder),
         ),
         boxShadow: [
@@ -45,7 +45,7 @@ class PatientTopbar extends StatelessWidget {
           // Date & time
           Row(
             children: [
-              Icon(
+              const Icon(
                 Icons.schedule_outlined,
                 size: 16,
                 color: PatientColors.textSecondary,
@@ -70,7 +70,7 @@ class PatientTopbar extends StatelessWidget {
           Stack(
             clipBehavior: Clip.none,
             children: [
-              Icon(
+              const Icon(
                 Icons.notifications_none_outlined,
                 size: 22,
                 color: PatientColors.textSecondary,
@@ -106,9 +106,9 @@ class PatientTopbar extends StatelessWidget {
           Container(
             width: 36,
             height: 36,
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               shape: BoxShape.circle,
-              gradient: const LinearGradient(
+              gradient: LinearGradient(
                 colors: [PatientColors.primary, PatientColors.primaryDark],
               ),
             ),

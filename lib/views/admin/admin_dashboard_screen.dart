@@ -16,7 +16,6 @@ import '../../widgets/admin/stats_card.dart';
 import 'doctors_screen.dart';
 import 'nurses_screen.dart';
 import 'patients_screen.dart';
-import 'babies_screen.dart';
 import 'rooms_screen.dart';
 import 'accounts_screen.dart';
 import 'settings_screen.dart';
@@ -53,8 +52,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         return 'Nurses / Infirmières';
       case AdminPage.patients:
         return 'Patients / Patientes';
-      case AdminPage.babies:
-        return 'Babies / Bébés';
       case AdminPage.rooms:
         return 'Rooms / Chambres';
       case AdminPage.messages:
@@ -156,49 +153,54 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (_) => AdminDashboardViewModel(),
-      child: Scaffold(
-        backgroundColor: AdminColors.pageBg,
-        body: StreamBuilder<int>(
-          stream:
-              context.read<AdminDashboardViewModel>().service.getTotalUnreadMessagesStream(),
-          builder: (context, snap) {
-            final unreadMessages = snap.data ?? 0;
-            return ResponsiveDashboardShell(
-              sidebarWidth: 255,
-              minMainWidth: 640,
-              sidebar: AdminSidebar(
-                currentPage: _currentPage,
-                unreadMessages: unreadMessages,
-                onPageChanged: (page) => setState(
-                  () => _currentPage = page,
+      child: Builder(
+        builder: (innerContext) => Scaffold(
+          backgroundColor: AdminColors.pageBg,
+          body: StreamBuilder<int>(
+            stream: innerContext
+                .read<AdminDashboardViewModel>()
+                .service
+                .getTotalUnreadMessagesStream(),
+            builder: (context, snap) {
+              final unreadMessages = snap.data ?? 0;
+              return ResponsiveDashboardShell(
+                sidebarWidth: 255,
+                minMainWidth: 640,
+                sidebar: AdminSidebar(
+                  currentPage: _currentPage,
+                  unreadMessages: unreadMessages,
+                  onPageChanged: (page) => setState(
+                    () => _currentPage = page,
+                  ),
+                  onLogout: _handleLogout,
                 ),
-                onLogout: _handleLogout,
-              ),
-              main: Column(
-                children: [
-                  AdminTopbar(
-                    pageTitle: _getPageTitle(_currentPage),
-                    onNotificationTap: () => setState(
-                      () => _currentPage = AdminPage.notifications,
-                    ),
-                  ),
-                  Expanded(
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 220),
-                      transitionBuilder: (child, animation) => FadeTransition(
-                        opacity: animation,
-                        child: child,
-                      ),
-                      child: KeyedSubtree(
-                        key: ValueKey(_currentPage),
-                        child: _buildCurrentPage(),
+                main: Column(
+                  children: [
+                    AdminTopbar(
+                      pageTitle: _getPageTitle(_currentPage),
+                      onNotificationTap: () => setState(
+                        () => _currentPage = AdminPage.notifications,
                       ),
                     ),
-                  ),
-                ],
-              ),
-            );
-          },
+                    Expanded(
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 220),
+                        transitionBuilder: (child, animation) =>
+                            FadeTransition(
+                          opacity: animation,
+                          child: child,
+                        ),
+                        child: KeyedSubtree(
+                          key: ValueKey(_currentPage),
+                          child: _buildCurrentPage(),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
         ),
       ),
     );
@@ -216,8 +218,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         return const NursesScreen();
       case AdminPage.patients:
         return const PatientsScreen();
-      case AdminPage.babies:
-        return const BabiesScreen();
       case AdminPage.rooms:
         return const RoomsScreen();
       case AdminPage.messages:

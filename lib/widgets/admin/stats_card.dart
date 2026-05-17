@@ -48,15 +48,15 @@ class _StatsCardState extends State<StatsCard> {
           // Border changes on hover / Bordure change au survol
           border: Border.all(
             color: _isHovered
-                ? widget.color.withOpacity(0.4)
+                ? widget.color.withValues(alpha: 0.4)
                 : AdminColors.border,
           ),
           // Shadow changes on hover / Ombre change au survol
           boxShadow: [
             BoxShadow(
               color: _isHovered
-                  ? widget.color.withOpacity(0.12)
-                  : Colors.black.withOpacity(0.04),
+                  ? widget.color.withValues(alpha: 0.12)
+                  : Colors.black.withValues(alpha: 0.04),
               blurRadius: _isHovered ? 24 : 8,
               offset    : const Offset(0, 4),
             ),
@@ -83,7 +83,7 @@ class _StatsCardState extends State<StatsCard> {
                   width : 50,
                   height: 50,
                   decoration: BoxDecoration(
-                    color        : widget.color.withOpacity(0.12),
+                    color        : widget.color.withValues(alpha: 0.12),
                     borderRadius : BorderRadius.circular(14),
                   ),
                   child: Icon(

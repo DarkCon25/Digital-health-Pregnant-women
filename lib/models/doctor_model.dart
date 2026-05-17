@@ -415,8 +415,9 @@ class DoctorModel {
     parts.add('📧 $email');
     parts.add('📞 $phone');
     if (extension != null) parts.add('Ext: $extension');
-    if (officeNumber != null)
+    if (officeNumber != null) {
       parts.add('🚪 Office $officeNumber / Bureau $officeNumber');
+    }
     return parts.join(' • ');
   }
 
@@ -633,7 +634,7 @@ extension DoctorModelExtensions on DoctorModel {
 
   /// Format for display in cards
   /// Format pour affichage en cartes
-  String get displaySubtitle => '$professionalSummary';
+  String get displaySubtitle => professionalSummary;
 
   /// Initials for avatar / Initiales pour avatar
   String get initials {

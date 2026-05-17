@@ -423,7 +423,7 @@ class BabiesScreen extends StatelessWidget {
                     }
 
                     return DropdownButtonFormField<String>(
-                      value: selectedMotherId,
+                      initialValue: selectedMotherId,
                       decoration: InputDecoration(
                         labelText: 'Select Mother / Sélectionner la mère',
                         prefixIcon: const Icon(Icons.person),
@@ -484,7 +484,7 @@ class BabiesScreen extends StatelessWidget {
 
                 // Gender selection
                 DropdownButtonFormField<String>(
-                  value: gender,
+                  initialValue: gender,
                   decoration: InputDecoration(
                     labelText: 'Gender / Sexe',
                     prefixIcon: const Icon(Icons.wc),
@@ -492,7 +492,7 @@ class BabiesScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  items: [
+                  items: const [
                     DropdownMenuItem(
                       value: 'male',
                       child: Text('Boy / Garçon'),
@@ -676,9 +676,9 @@ class BabiesScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
-                  value: gender,
+                  initialValue: gender,
                   decoration: const InputDecoration(labelText: 'Gender / Sexe'),
-                  items: [
+                  items: const [
                     DropdownMenuItem(
                       value: 'male',
                       child: Text('Boy / Garçon'),
@@ -706,10 +706,10 @@ class BabiesScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
-                  value: healthStatus,
+                  initialValue: healthStatus,
                   decoration: const InputDecoration(
                       labelText: 'Health Status / État de santé'),
-                  items: [
+                  items: const [
                     DropdownMenuItem(
                         value: 'healthy', child: Text('Healthy / Sain')),
                     DropdownMenuItem(

@@ -13,6 +13,14 @@ class BabyModel {
   final String? notes;
   final String? photoUrl;
   final DateTime createdAt;
+  final String? deliveryType; // natural, caesarean, underCare
+  final String? roomNumber; // رقم الغرفة
+  final DateTime? birthTime; // وقت الولادة الدقيق
+  final int? apgarScore; // درجة أبجار (0-10)
+  final String? initialCondition; // الحالة الأولية
+  final String? createdByNurseId; // معرف الممرضة
+  final String? reviewedByDoctorId; // معرف الطبيب
+  final String? doctorNotes; // ملاحظات الطبيب
 
   BabyModel({
     required this.id,
@@ -27,6 +35,14 @@ class BabyModel {
     this.notes,
     this.photoUrl,
     required this.createdAt,
+    this.deliveryType,
+    this.roomNumber,
+    this.birthTime,
+    this.apgarScore,
+    this.initialCondition,
+    this.createdByNurseId,
+    this.reviewedByDoctorId,
+    this.doctorNotes,
   });
 
   String get fullName => '$firstName $lastName';
@@ -56,6 +72,16 @@ class BabyModel {
       notes: map['notes'],
       photoUrl: map['photoUrl'],
       createdAt: (map['createdAt'] as Timestamp).toDate(),
+      deliveryType: map['deliveryType'],
+      roomNumber: map['roomNumber'],
+      birthTime: map['birthTime'] != null
+          ? (map['birthTime'] as Timestamp).toDate()
+          : null,
+      apgarScore: map['apgarScore'] as int?,
+      initialCondition: map['initialCondition'],
+      createdByNurseId: map['createdByNurseId'],
+      reviewedByDoctorId: map['reviewedByDoctorId'],
+      doctorNotes: map['doctorNotes'],
     );
   }
 
@@ -72,6 +98,14 @@ class BabyModel {
       'notes': notes,
       'photoUrl': photoUrl,
       'createdAt': Timestamp.fromDate(createdAt),
+      'deliveryType': deliveryType,
+      'roomNumber': roomNumber,
+      'birthTime': birthTime != null ? Timestamp.fromDate(birthTime!) : null,
+      'apgarScore': apgarScore,
+      'initialCondition': initialCondition,
+      'createdByNurseId': createdByNurseId,
+      'reviewedByDoctorId': reviewedByDoctorId,
+      'doctorNotes': doctorNotes,
     };
   }
 }

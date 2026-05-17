@@ -27,7 +27,7 @@ class PatientsListScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          NursePageHeader(
+          const NursePageHeader(
             title: NurseStrings.pagePatients,
             subtitle: NurseStrings.searchHint,
           ),
@@ -63,15 +63,15 @@ class PatientsListScreen extends StatelessWidget {
                 return Row(
                   children: [
                     Expanded(
-                      flex: 2,
+                      flex: 3,
                       child: TextField(
                         onChanged: vm.setSearch,
                         decoration: _dec(NurseStrings.searchHint),
                       ),
                     ),
                     const SizedBox(width: 12),
-                    SizedBox(
-                      width: 130,
+                    Expanded(
+                      flex: 1,
                       child: _dropdown(
                         vm.statusFilter.isEmpty ? '' : vm.statusFilter,
                         NurseStrings.filterStatus,
@@ -85,8 +85,8 @@ class PatientsListScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    SizedBox(
-                      width: 120,
+                    Expanded(
+                      flex: 1,
                       child: _dropdown(
                         vm.roomFilter.isEmpty ? '' : vm.roomFilter,
                         NurseStrings.filterRoom,
@@ -136,7 +136,7 @@ class PatientsListScreen extends StatelessWidget {
                                 style: GoogleFonts.inter(fontSize: 12),
                               )),
                               DataCell(Text(p.fullName)),
-                              DataCell(Text(month != null ? '$month mo. / ${month} m.' : '—')),
+                              DataCell(Text(month != null ? '$month mo. / $month m.' : '—')),
                               DataCell(Text(p.deliveryType ?? '—')),
                               DataCell(Text(p.careNeeded ? NurseStrings.yes : NurseStrings.no)),
                               DataCell(Text(p.roomNumber ?? '—')),
@@ -174,6 +174,7 @@ class PatientsListScreen extends StatelessWidget {
     return DropdownButtonFormField<String>(
       key: ValueKey('$label$value'),
       initialValue: value.isEmpty ? '' : value,
+      isExpanded: true,
       decoration: InputDecoration(
         labelText: label,
         filled: true,

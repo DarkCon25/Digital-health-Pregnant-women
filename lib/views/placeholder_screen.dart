@@ -5,6 +5,7 @@ import '../core/admin_colors.dart';
 import '../core/constants.dart';
 import '../core/routes.dart';
 import '../viewmodels/auth_viewmodel.dart';
+import '../widgets/app_logo.dart';
 
 // HerCare loading/redirect screen.
 // Checks the authenticated user role then routes to the proper dashboard.
@@ -79,25 +80,10 @@ class _LogoBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 80,
-      height: 80,
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [
-            AdminColors.primaryBlue,
-            AdminColors.pink,
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: const Icon(
-        Icons.favorite_rounded,
-        color: Colors.white,
-        size: 40,
-      ),
+    return const AppLogo(
+      size: 84,
+      isCircle: false,
+      backgroundColor: Colors.white,
     );
   }
 }

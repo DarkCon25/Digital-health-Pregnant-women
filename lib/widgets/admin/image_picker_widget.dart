@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -144,7 +143,7 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(
+        const Icon(
           Icons.add_photo_alternate_outlined,
           size: 48,
           color: AdminColors.textLight,

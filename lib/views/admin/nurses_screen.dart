@@ -6,6 +6,7 @@ import '../../core/admin_colors.dart';
 import '../../services/admin_service.dart';
 import '../../viewmodels/admin/admin_dashboard_viewmodel.dart';
 import '../../widgets/admin/data_table_widget.dart';
+import '../../widgets/admin/image_picker_widget.dart';
 
 // ============================================
 // HerCare - Nurses Screen
@@ -209,6 +210,7 @@ class NursesScreen extends StatelessWidget {
     final passwordCtrl = TextEditingController();
     final phoneCtrl = TextEditingController();
     final departmentCtrl = TextEditingController();
+    dynamic profileImageFile;
     String selectedShift = 'morning';
     bool isLoading = false;
 
@@ -301,6 +303,13 @@ class NursesScreen extends StatelessWidget {
                   ),
 
                   const SizedBox(height: 14),
+                  ImagePickerWidget(
+                    label: 'Nurse Image / Photo de l infirmiere',
+                    onImageSelected: (file) {
+                      profileImageFile = file;
+                    },
+                  ),
+                  const SizedBox(height: 14),
 
                   // Shift Dropdown
                   Text(
@@ -370,6 +379,7 @@ class NursesScreen extends StatelessWidget {
                                     phone: phoneCtrl.text,
                                     department: departmentCtrl.text,
                                     shift: selectedShift,
+                                    profileImageFile: profileImageFile,
                                   );
 
                                   if (id != null) {

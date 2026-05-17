@@ -16,6 +16,7 @@ class NurseStrings {
   static const String pageMedications = 'Medications / Médicaments';
   static const String pageEmergency = 'Emergency calls / Appels d’urgence';
   static const String pageRooms = 'Rooms / Chambres';
+  static const String pageBabies = 'Newborns / Nouveau-nés';
   static const String pageAppointments = 'Appointments / Rendez-vous';
   static const String pageMessages = 'Messages / Messages';
   static const String pageNotifications = 'Notifications / Notifications';

@@ -11,6 +11,42 @@ import '../../core/admin_colors.dart';
 class NotificationsScreen extends StatelessWidget {
   const NotificationsScreen({super.key});
 
+  Future<void> _markAllAsRead(BuildContext context) async {
+    try {
+      final unread = await FirebaseFirestore.instance
+          .collection('notifications')
+          .where('read', isEqualTo: false)
+          .get();
+      if (unread.docs.isEmpty) return;
+      final batch = FirebaseFirestore.instance.batch();
+      for (final d in unread.docs) {
+        batch.update(d.reference, {
+          'read': true,
+          'readAt': FieldValue.serverTimestamp(),
+        });
+      }
+      await batch.commit();
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('All notifications marked as read')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to mark all as read: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _markOneAsRead(String id) async {
+    await FirebaseFirestore.instance.collection('notifications').doc(id).update({
+      'read': true,
+      'readAt': FieldValue.serverTimestamp(),
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -25,7 +61,7 @@ class NotificationsScreen extends StatelessWidget {
               // Mark all read button
               // Bouton tout marquer comme lu
               TextButton.icon(
-                onPressed: () {},
+                onPressed: () => _markAllAsRead(context),
                 icon: const Icon(
                   Icons.done_all_rounded,
                   size: 16,
@@ -102,10 +138,33 @@ class NotificationsScreen extends StatelessWidget {
                     final isRead = data['read'] ?? false;
 
                     return _NotificationItem(
+                      id: doc.id,
                       data: data,
                       isLast: isLast,
                       isRead: isRead,
-                      onTap: () {},
+                      onTap: () async {
+                        if (!isRead) {
+                          await _markOneAsRead(doc.id);
+                        }
+                        if (context.mounted) {
+                          final title =
+                              data['title'] as String? ?? 'Notification';
+                          final body = data['body'] as String? ?? '';
+                          showDialog<void>(
+                            context: context,
+                            builder: (_) => AlertDialog(
+                              title: Text(title),
+                              content: Text(body),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: const Text('Close'),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+                      },
                     );
                   }).toList(),
                 ),
@@ -166,12 +225,14 @@ class NotificationsScreen extends StatelessWidget {
 // Élément de notification unique
 // ============================================
 class _NotificationItem extends StatefulWidget {
+  final String id;
   final Map<String, dynamic> data;
   final bool isLast;
   final bool isRead;
-  final VoidCallback onTap;
+  final Future<void> Function() onTap;
 
   const _NotificationItem({
+    required this.id,
     required this.data,
     required this.isLast,
     required this.isRead,
@@ -229,7 +290,7 @@ class _NotificationItemState extends State<_NotificationItem> {
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
       child: GestureDetector(
-        onTap: widget.onTap,
+        onTap: () => widget.onTap(),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
           padding: const EdgeInsets.all(16),

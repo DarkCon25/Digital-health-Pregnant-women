@@ -215,7 +215,7 @@ class RoomsScreen extends StatelessWidget {
                   _buildDropdownLabel('Room Type'),
                   const SizedBox(height: 6),
                   DropdownButtonFormField<String>(
-                    value: type,
+                    initialValue: type,
                     onChanged: (v) => setS(() => type = v!),
                     decoration: _dropDeco(),
                     items: _roomTypeItems(),
@@ -232,7 +232,7 @@ class RoomsScreen extends StatelessWidget {
                             _buildDropdownLabel('Floor'),
                             const SizedBox(height: 6),
                             DropdownButtonFormField<int>(
-                              value: floor,
+                              initialValue: floor,
                               onChanged: (v) => setS(() => floor = v!),
                               decoration: _dropDeco(),
                               items: List.generate(
@@ -257,7 +257,7 @@ class RoomsScreen extends StatelessWidget {
                             _buildDropdownLabel('Capacity'),
                             const SizedBox(height: 6),
                             DropdownButtonFormField<int>(
-                              value: capacity,
+                              initialValue: capacity,
                               onChanged: (v) => setS(() => capacity = v!),
                               decoration: _dropDeco(),
                               items: List.generate(
@@ -442,7 +442,7 @@ class RoomsScreen extends StatelessWidget {
                   _buildDropdownLabel('Room Type'),
                   const SizedBox(height: 6),
                   DropdownButtonFormField<String>(
-                    value: selectedType,
+                    initialValue: selectedType,
                     onChanged: (v) => setS(() => selectedType = v!),
                     decoration: _dropDeco(),
                     items: _roomTypeItems(),
@@ -458,7 +458,7 @@ class RoomsScreen extends StatelessWidget {
                             _buildDropdownLabel('Floor'),
                             const SizedBox(height: 6),
                             DropdownButtonFormField<int>(
-                              value: selectedFloor,
+                              initialValue: selectedFloor,
                               onChanged: (v) => setS(() => selectedFloor = v!),
                               decoration: _dropDeco(),
                               items: List.generate(
@@ -483,7 +483,7 @@ class RoomsScreen extends StatelessWidget {
                             _buildDropdownLabel('Capacity'),
                             const SizedBox(height: 6),
                             DropdownButtonFormField<int>(
-                              value: selectedCapacity,
+                              initialValue: selectedCapacity,
                               onChanged: (v) =>
                                   setS(() => selectedCapacity = v!),
                               decoration: _dropDeco(),
@@ -508,7 +508,7 @@ class RoomsScreen extends StatelessWidget {
                   _buildDropdownLabel('Status'),
                   const SizedBox(height: 6),
                   DropdownButtonFormField<String>(
-                    value: selectedStatus,
+                    initialValue: selectedStatus,
                     onChanged: (v) => setS(() => selectedStatus = v!),
                     decoration: _dropDeco(),
                     items: _statusItems(),
@@ -651,9 +651,9 @@ class RoomsScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -874,7 +874,7 @@ class _StatusBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
@@ -987,7 +987,7 @@ class _ActionButtonState extends State<_ActionButton> {
           height: 32,
           decoration: BoxDecoration(
             color:
-                _hovered ? widget.color.withOpacity(0.1) : Colors.transparent,
+                _hovered ? widget.color.withValues(alpha: 0.1) : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
               color: _hovered ? widget.color : AdminColors.border,
@@ -1003,3 +1003,4 @@ class _ActionButtonState extends State<_ActionButton> {
     );
   }
 }
+

@@ -40,7 +40,7 @@ class _NurseSettingsScreenState extends State<NurseSettingsScreen> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              NursePageHeader(
+              const NursePageHeader(
                 title: NurseStrings.settingsTitle,
                 subtitle: NurseStrings.settingsPageSubtitle,
               ),

@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/admin_colors.dart';
 import '../../core/admin_doctors_strings.dart';
 import '../../services/admin_service.dart';
+import 'image_picker_widget.dart';
 
 Future<void> showAddDoctorDialog(
   BuildContext context,
@@ -32,6 +33,7 @@ class _AddDoctorDialogState extends State<AddDoctorDialog> {
   final _password = TextEditingController();
   final _phone = TextEditingController();
   final _specialty = TextEditingController();
+  dynamic _profileImageFile;
   bool _loading = false;
 
   @override
@@ -48,7 +50,7 @@ class _AddDoctorDialogState extends State<AddDoctorDialog> {
   Future<void> _submit() async {
     if (_email.text.trim().isEmpty || _password.text.trim().isEmpty) {
       ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text(AdminDoctorsStrings.fillRequired),
           backgroundColor: AdminColors.warning,
         ),
@@ -63,6 +65,7 @@ class _AddDoctorDialogState extends State<AddDoctorDialog> {
       password: _password.text,
       phone: _phone.text,
       specialty: _specialty.text,
+      profileImageFile: _profileImageFile,
     );
     if (!mounted) return;
     setState(() => _loading = false);
@@ -70,7 +73,7 @@ class _AddDoctorDialogState extends State<AddDoctorDialog> {
     if (id != null) {
       Navigator.pop(context);
       messenger?.showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text(AdminDoctorsStrings.doctorAdded),
           backgroundColor: AdminColors.success,
         ),
@@ -171,6 +174,13 @@ class _AddDoctorDialogState extends State<AddDoctorDialog> {
                   AdminDoctorsStrings.specialty,
                   _specialty,
                   Icons.medical_services_outlined,
+                ),
+                const SizedBox(height: 14),
+                ImagePickerWidget(
+                  label: 'Doctor Image / Photo du medecin',
+                  onImageSelected: (file) {
+                    _profileImageFile = file;
+                  },
                 ),
                 const SizedBox(height: 24),
                 Row(

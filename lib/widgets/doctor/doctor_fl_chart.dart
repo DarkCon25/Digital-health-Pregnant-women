@@ -87,7 +87,7 @@ class DoctorFlMonitoringChart extends StatelessWidget {
                 show: true,
                 drawVerticalLine: false,
                 horizontalInterval: (maxY - minY) / 4,
-                getDrawingHorizontalLine: (_) => FlLine(
+                getDrawingHorizontalLine: (_) => const FlLine(
                   color: DoctorColors.cardBorder,
                   strokeWidth: 1,
                 ),

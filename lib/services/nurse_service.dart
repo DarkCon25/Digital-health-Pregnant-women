@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
 import '../core/constants.dart';
+import '../models/baby_model.dart';
 import '../models/doctor/icu_case_model.dart';
 import '../models/doctor/medical_file_model.dart';
 import '../models/nurse/emergency_request_model.dart';
@@ -30,19 +31,16 @@ class NurseService {
         .where('role', isEqualTo: AppConstants.rolePatient)
         .snapshots()
         .map((snap) {
-      final list = snap.docs
-          .map((d) => NursePatientModel.fromMap(d.data()))
-          .toList();
+      final list =
+          snap.docs.map((d) => NursePatientModel.fromMap(d.data())).toList();
       list.sort((a, b) => b.patient.createdAt.compareTo(a.patient.createdAt));
       return list;
     });
   }
 
   Future<NursePatientModel?> getPatient(String patientId) async {
-    final doc = await _db
-        .collection(AppConstants.usersCollection)
-        .doc(patientId)
-        .get();
+    final doc =
+        await _db.collection(AppConstants.usersCollection).doc(patientId).get();
     if (!doc.exists || doc.data() == null) return null;
     return NursePatientModel.fromMap(doc.data()!);
   }
@@ -75,8 +73,7 @@ class NurseService {
 
   Future<void> saveVitalSigns(VitalSignsModel model) async {
     await ensureMedicalFile(model.patientId);
-    final hasBloodPressure =
-        model.systolic != null || model.diastolic != null;
+    final hasBloodPressure = model.systolic != null || model.diastolic != null;
     final bloodPressureText = hasBloodPressure
         ? '${model.systolic ?? '—'}/${model.diastolic ?? '—'}'
         : null;
@@ -219,9 +216,8 @@ class NurseService {
         .collection(AppConstants.icuCasesCollection)
         .snapshots()
         .map((snap) {
-      final list = snap.docs
-          .map((d) => IcuCaseModel.fromDoc(d.id, d.data()))
-          .toList();
+      final list =
+          snap.docs.map((d) => IcuCaseModel.fromDoc(d.id, d.data())).toList();
       list.sort((a, b) {
         final ta = a.admittedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
         final tb = b.admittedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
@@ -256,9 +252,7 @@ class NurseService {
   }
 
   Stream<QuerySnapshot> contactsStream() {
-    return _db
-        .collection(AppConstants.usersCollection)
-        .where('role', whereIn: [
+    return _db.collection(AppConstants.usersCollection).where('role', whereIn: [
       AppConstants.roleDoctor,
       AppConstants.roleNurse,
       AppConstants.roleAdmin,
@@ -350,13 +344,15 @@ class NurseService {
           .collection(AppConstants.icuCasesCollection)
           .where('status', whereIn: ['active', 'critical', 'admitted']).get();
     } catch (_) {
-      icu = await _db.collection(AppConstants.icuCasesCollection).limit(50).get();
+      icu =
+          await _db.collection(AppConstants.icuCasesCollection).limit(50).get();
     }
     QuerySnapshot birthsSnap;
     try {
       birthsSnap = await _db.collection('babies').limit(80).get();
     } catch (_) {
-      birthsSnap = await _db.collection(AppConstants.usersCollection).limit(0).get();
+      birthsSnap =
+          await _db.collection(AppConstants.usersCollection).limit(0).get();
     }
     final today = DateTime.now();
     var birthsToday = 0;
@@ -380,5 +376,168 @@ class NurseService {
       'icu': icu.docs.length,
       'birthsToday': birthsToday,
     };
+  }
+
+  /// Add a new baby record (nurse can add newborn information)
+  /// إضافة سجل مولود جديد (الممرضة يمكنها إضافة معلومات المولود)
+  Future<String> addBaby({
+    required String motherId,
+    required String firstName,
+    required String lastName,
+    required String gender,
+    required DateTime birthDate,
+    double? weight,
+    double? height,
+    String? healthStatus,
+    String? notes,
+    String? photoUrl,
+  }) async {
+    final docRef = await _db.collection('babies').add({
+      'motherId': motherId,
+      'firstName': firstName,
+      'lastName': lastName,
+      'gender': gender,
+      'birthDate': Timestamp.fromDate(birthDate),
+      'weight': weight,
+      'height': height,
+      'healthStatus': healthStatus ?? 'healthy',
+      'notes': notes,
+      'photoUrl': photoUrl,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+    return docRef.id;
+  }
+
+  /// Watch babies stream
+  Stream<List<BabyModel>> watchBabies() {
+    return _db
+        .collection('babies')
+        .orderBy('birthDate', descending: true)
+        .snapshots()
+        .map((snap) {
+      return snap.docs.map((d) => BabyModel.fromMap(d.data(), d.id)).toList();
+    });
+  }
+
+  /// Get baby by ID
+  Future<BabyModel?> getBaby(String babyId) async {
+    final doc = await _db.collection('babies').doc(babyId).get();
+    if (!doc.exists || doc.data() == null) return null;
+    return BabyModel.fromMap(doc.data()!, doc.id);
+  }
+
+  /// Get newborns waiting for doctor review
+  Stream<List<BabyModel>> watchNewbornsForReview() {
+    return _db
+        .collection('babies')
+        .where('reviewedByDoctorId', isNull: true)
+        .orderBy('birthDate', descending: true)
+        .snapshots()
+        .map((snap) {
+      return snap.docs.map((d) => BabyModel.fromMap(d.data(), d.id)).toList();
+    });
+  }
+
+  /// Update baby information
+  Future<void> updateBaby(String babyId, Map<String, dynamic> data) async {
+    await _db.collection('babies').doc(babyId).update({
+      ...data,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// Delete baby record
+  Future<void> deleteBaby(String babyId) async {
+    await _db.collection('babies').doc(babyId).delete();
+  }
+
+  /// Admit patient - assign room and record admission
+  Future<void> admitPatient({
+    required String patientId,
+    required String roomNumber,
+  }) async {
+    await _db.collection(AppConstants.usersCollection).doc(patientId).update({
+      'roomNumber': roomNumber,
+      'status': 'active',
+      'admittedAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// Assign room to patient
+  Future<void> assignRoomToPatient({
+    required String patientId,
+    required String roomNumber,
+  }) async {
+    await _db.collection(AppConstants.usersCollection).doc(patientId).update({
+      'roomNumber': roomNumber,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// Record delivery event
+  Future<void> recordDelivery({
+    required String patientId,
+    required String deliveryType,
+    required DateTime deliveryDate,
+  }) async {
+    await ensureMedicalFile(patientId);
+    await _db
+        .collection(AppConstants.medicalFilesCollection)
+        .doc(patientId)
+        .set({
+      'deliveryType': deliveryType,
+      'deliveryDate': Timestamp.fromDate(deliveryDate),
+      'deliveryStatus': 'in_progress',
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
+  /// Add newborn with birth data
+  Future<String> addBabyWithBirthData({
+    required String motherId,
+    required String firstName,
+    required String lastName,
+    required String gender,
+    required DateTime birthDate,
+    required DateTime birthTime,
+    required String deliveryType,
+    required String roomNumber,
+    double? weight,
+    double? height,
+    int? apgarScore,
+    String? initialCondition,
+    String? healthStatus,
+    String? notes,
+    String? photoUrl,
+  }) async {
+    final nurseId = currentUid;
+    final docRef = await _db.collection('babies').add({
+      'motherId': motherId,
+      'firstName': firstName,
+      'lastName': lastName,
+      'gender': gender,
+      'birthDate': Timestamp.fromDate(birthDate),
+      'birthTime': Timestamp.fromDate(birthTime),
+      'weight': weight,
+      'height': height,
+      'deliveryType': deliveryType,
+      'roomNumber': roomNumber,
+      'apgarScore': apgarScore,
+      'initialCondition': initialCondition,
+      'healthStatus': healthStatus ?? 'healthy',
+      'notes': notes,
+      'photoUrl': photoUrl,
+      'createdByNurseId': nurseId,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+
+    // Update patient's babies list
+    await _db.collection(AppConstants.usersCollection).doc(motherId).update({
+      'babies': FieldValue.arrayUnion([docRef.id]),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+
+    return docRef.id;
   }
 }

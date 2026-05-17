@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../core/admin_colors.dart';
@@ -167,7 +168,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       vertical: 3,
                     ),
                     decoration: BoxDecoration(
-                      color: AdminColors.purpleCard.withOpacity(0.1),
+                      color: AdminColors.purpleCard.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
@@ -293,7 +294,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             children: [
               Expanded(
                 child: DropdownButtonFormField<String>(
-                  value: _language,
+                  initialValue: _language,
                   onChanged: (v) => setState(() => _language = v!),
                   decoration: InputDecoration(
                     labelText: 'Language / Langue',
@@ -323,7 +324,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   items: [
                     'French / Français',
                     'English',
-                    'Arabic / العربية',
+                    'English / French',
                   ]
                       .map(
                         (lang) => DropdownMenuItem(
@@ -390,8 +391,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         Switch(
           value: value,
           onChanged: onChanged,
-          activeColor: AdminColors.primaryBlue,
-          activeTrackColor: AdminColors.primaryBlue.withOpacity(0.3),
+          activeThumbColor: AdminColors.primaryBlue,
+          activeTrackColor: AdminColors.primaryBlue.withValues(alpha: 0.3),
         ),
 
         const SizedBox(width: 12),
@@ -457,122 +458,168 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final currentCtrl = TextEditingController();
     final newCtrl = TextEditingController();
     final confirmCtrl = TextEditingController();
+    bool isSaving = false;
 
     showDialog(
       context: context,
-      builder: (ctx) => Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Container(
-          width: 400,
-          padding: const EdgeInsets.all(28),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Change Password / Changer mot de passe',
-                style: GoogleFonts.inter(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Container(
+            width: 400,
+            padding: const EdgeInsets.all(28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Change Password / Changer mot de passe',
+                  style: GoogleFonts.inter(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // Current Password
-              _buildPasswordField(
-                'Current Password / Mot de passe actuel',
-                currentCtrl,
-              ),
-
-              const SizedBox(height: 14),
-
-              // New Password
-              _buildPasswordField(
-                'New Password / Nouveau mot de passe',
-                newCtrl,
-              ),
-
-              const SizedBox(height: 14),
-
-              // Confirm Password
-              _buildPasswordField(
-                'Confirm Password / Confirmer',
-                confirmCtrl,
-              ),
-
-              const SizedBox(height: 24),
-
-              // Buttons
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(ctx),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 14,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      child: Text(
-                        'Cancel / Annuler',
-                        style: GoogleFonts.inter(),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        // TODO: Implement change password
-                        Navigator.pop(ctx);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              '✅ Password changed!'
-                              ' / Mot de passe changé!',
-                              style: GoogleFonts.inter(),
-                            ),
-                            backgroundColor: AdminColors.success,
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
+                const SizedBox(height: 20),
+                _buildPasswordField(
+                  'Current Password / Mot de passe actuel',
+                  currentCtrl,
+                ),
+                const SizedBox(height: 14),
+                _buildPasswordField(
+                  'New Password / Nouveau mot de passe',
+                  newCtrl,
+                ),
+                const SizedBox(height: 14),
+                _buildPasswordField(
+                  'Confirm Password / Confirmer',
+                  confirmCtrl,
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: isSaving ? null : () => Navigator.pop(ctx),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
                           ),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AdminColors.primaryBlue,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 14,
                         ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      child: Text(
-                        'Save / Sauvegarder',
-                        style: GoogleFonts.inter(
-                          fontWeight: FontWeight.w700,
+                        child: Text(
+                          'Cancel / Annuler',
+                          style: GoogleFonts.inter(),
                         ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ],
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: isSaving
+                            ? null
+                            : () async {
+                                final current = currentCtrl.text.trim();
+                                final next = newCtrl.text.trim();
+                                final confirm = confirmCtrl.text.trim();
+                                if (current.isEmpty || next.isEmpty || confirm.isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Please fill all password fields')),
+                                  );
+                                  return;
+                                }
+                                if (next.length < 6) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('New password must be at least 6 characters')),
+                                  );
+                                  return;
+                                }
+                                if (next != confirm) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('New password and confirmation do not match')),
+                                  );
+                                  return;
+                                }
+                                final user = FirebaseAuth.instance.currentUser;
+                                if (user == null || user.email == null) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('No authenticated user')),
+                                  );
+                                  return;
+                                }
+
+                                try {
+                                  setDialogState(() => isSaving = true);
+                                  final cred = EmailAuthProvider.credential(
+                                    email: user.email!,
+                                    password: current,
+                                  );
+                                  await user.reauthenticateWithCredential(cred);
+                                  await user.updatePassword(next);
+                                  if (ctx.mounted) Navigator.pop(ctx);
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          'Password changed successfully / Mot de passe modifie',
+                                          style: GoogleFonts.inter(),
+                                        ),
+                                        backgroundColor: AdminColors.success,
+                                      ),
+                                    );
+                                  }
+                                } on FirebaseAuthException catch (e) {
+                                  setDialogState(() => isSaving = false);
+                                  final msg = e.code == 'wrong-password'
+                                      ? 'Current password is incorrect'
+                                      : 'Failed to change password: ${e.message ?? e.code}';
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text(msg)),
+                                    );
+                                  }
+                                } catch (e) {
+                                  setDialogState(() => isSaving = false);
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('Failed to change password: $e')),
+                                    );
+                                  }
+                                }
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AdminColors.primaryBlue,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: isSaving
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                ),
+                              )
+                            : Text(
+                                'Save / Sauvegarder',
+                                style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+                              ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
-
   // Password Field Helper
   Widget _buildPasswordField(
     String label,
@@ -656,7 +703,7 @@ class _SettingsCard extends StatelessWidget {
         border: Border.all(color: AdminColors.border),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -687,3 +734,6 @@ class _SettingsCard extends StatelessWidget {
     );
   }
 }
+
+
+

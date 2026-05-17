@@ -76,14 +76,14 @@ class _EditDoctorDialogState extends State<EditDoctorDialog> {
     if (ok) {
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text(AdminDoctorsStrings.doctorUpdated),
           backgroundColor: AdminColors.success,
         ),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text(
             '${AdminDoctorsStrings.errorPrefix}: update failed / échec',
           ),
@@ -162,7 +162,7 @@ class _EditDoctorDialogState extends State<EditDoctorDialog> {
                       vertical: 12,
                     ),
                   ),
-                  items: [
+                  items: const [
                     DropdownMenuItem(
                       value: 'active',
                       child: Text(AdminDoctorsStrings.statusActive),

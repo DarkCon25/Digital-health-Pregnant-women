@@ -323,7 +323,7 @@ class DoctorProfileScreen extends StatelessWidget {
                     data,
                   ),
                   icon: const Icon(Icons.edit_outlined, size: 18),
-                  label: Text(AdminDoctorsStrings.edit),
+                  label: const Text(AdminDoctorsStrings.edit),
                 ),
                 OutlinedButton.icon(
                   onPressed: () => showAssignPatientToDoctorDialog(
@@ -333,7 +333,7 @@ class DoctorProfileScreen extends StatelessWidget {
                     doctorName: displayName,
                   ),
                   icon: const Icon(Icons.person_add_alt_1_outlined, size: 18),
-                  label: Text(AdminDoctorsStrings.assignShort),
+                  label: const Text(AdminDoctorsStrings.assignShort),
                 ),
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
@@ -355,14 +355,14 @@ class DoctorProfileScreen extends StatelessWidget {
                         actions: [
                           TextButton(
                             onPressed: () => Navigator.pop(ctx, false),
-                            child: Text(AdminDoctorsStrings.cancel),
+                            child: const Text(AdminDoctorsStrings.cancel),
                           ),
                           ElevatedButton(
                             onPressed: () => Navigator.pop(ctx, true),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AdminColors.danger,
                             ),
-                            child: Text(AdminDoctorsStrings.delete),
+                            child: const Text(AdminDoctorsStrings.delete),
                           ),
                         ],
                       ),
@@ -373,14 +373,14 @@ class DoctorProfileScreen extends StatelessWidget {
                         if (deleted) {
                           Navigator.pop(context);
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
+                            const SnackBar(
                               content: Text(AdminDoctorsStrings.doctorDeleted),
                               backgroundColor: AdminColors.success,
                             ),
                           );
                         } else {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
+                            const SnackBar(
                               content: Text(
                                 '${AdminDoctorsStrings.errorPrefix}: delete',
                               ),
@@ -392,7 +392,7 @@ class DoctorProfileScreen extends StatelessWidget {
                     }
                   },
                   icon: const Icon(Icons.delete_outline, size: 18),
-                  label: Text(AdminDoctorsStrings.delete),
+                  label: const Text(AdminDoctorsStrings.delete),
                 ),
               ],
             ),

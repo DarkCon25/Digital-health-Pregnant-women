@@ -27,7 +27,7 @@ class EmergencyAlertsScreen extends StatelessWidget {
             subtitle: DoctorStrings.emergencyPageSubtitle,
             actions: [
               Chip(
-                avatar: Icon(Icons.warning_amber_rounded,
+                avatar: const Icon(Icons.warning_amber_rounded,
                     size: 18, color: DoctorColors.critical),
                 label: Text(
                   '${vm.openAlertsForMyPatients.length} ${DoctorStrings.activeCount}',

@@ -35,7 +35,7 @@ class PrimaryButton extends StatelessWidget {
           backgroundColor: backgroundColor ?? AppColors.primaryBlue,
           foregroundColor: textColor ?? AppColors.white,
           disabledBackgroundColor:
-              (backgroundColor ?? AppColors.primaryBlue).withOpacity(0.6),
+              (backgroundColor ?? AppColors.primaryBlue).withValues(alpha: 0.6),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
           ),
@@ -137,3 +137,4 @@ class OutlineButton extends StatelessWidget {
     );
   }
 }
+

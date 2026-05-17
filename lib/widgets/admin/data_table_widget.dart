@@ -155,7 +155,7 @@ class AdminDataTable extends StatelessWidget {
       padding: const EdgeInsets.all(48),
       child: Column(
         children: [
-          Icon(
+          const Icon(
             Icons.inbox_outlined,
             size: 52,
             color: AdminColors.textLight,
@@ -454,7 +454,7 @@ class _ActionButtonState extends State<_ActionButton> {
           height: 32,
           decoration: BoxDecoration(
             color:
-                _isHovered ? widget.color.withOpacity(0.1) : Colors.transparent,
+                _isHovered ? widget.color.withValues(alpha: 0.1) : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
               color: _isHovered ? widget.color : AdminColors.border,
@@ -470,3 +470,4 @@ class _ActionButtonState extends State<_ActionButton> {
     );
   }
 }
+

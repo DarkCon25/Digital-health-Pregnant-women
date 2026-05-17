@@ -111,7 +111,7 @@ class _DoctorReportsScreenState extends State<DoctorReportsScreen> {
         borderRadius: BorderRadius.circular(14),
         onTap: () {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
+            const SnackBar(
               content: Text(DoctorStrings.reportTapHint),
               behavior: SnackBarBehavior.floating,
             ),

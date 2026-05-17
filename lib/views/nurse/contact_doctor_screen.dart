@@ -111,7 +111,7 @@ class _ContactDoctorScreenState extends State<ContactDoctorScreen> {
                         _bodyCtrl.clear();
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(NurseStrings.sendMessage)),
+                            const SnackBar(content: Text(NurseStrings.sendMessage)),
                           );
                         }
                       },
@@ -119,7 +119,7 @@ class _ContactDoctorScreenState extends State<ContactDoctorScreen> {
                   backgroundColor: NurseColors.primary,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
-                child: Text(NurseStrings.sendMessage),
+                child: const Text(NurseStrings.sendMessage),
               ),
             ],
           ),

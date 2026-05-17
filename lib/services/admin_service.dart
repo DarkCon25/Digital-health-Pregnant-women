@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/foundation.dart';
 import '../firebase_options.dart';
+import 'storage_service.dart';
 
 // ════════════════════════════════════════════════════════════════
 // HerCare - Admin Service (Complete & Secure)
@@ -13,6 +14,7 @@ import '../firebase_options.dart';
 class AdminService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final StorageService _storageService = StorageService();
   String? _lastError;
   String? get lastError => _lastError;
 
@@ -116,6 +118,7 @@ class AdminService {
     required String phone,
     required String specialty,
     String? profileImage,
+    dynamic profileImageFile,
   }) async {
     _lastError = null;
     try {
@@ -126,6 +129,14 @@ class AdminService {
       );
 
       final uid = credential.user!.uid;
+      String? uploadedProfileImage = profileImage;
+      if (profileImageFile != null) {
+        uploadedProfileImage = await _storageService.uploadProfileImage(
+          userId: uid,
+          userType: 'doctor',
+          file: profileImageFile,
+        );
+      }
 
       await _db.collection('users').doc(uid).set({
         'uid': uid,
@@ -137,7 +148,7 @@ class AdminService {
         'role': 'doctor',
         'status': 'active',
         'patients': 0,
-        'profileImage': profileImage,
+        'profileImage': uploadedProfileImage,
         'isAvailable': true,
         'rating': null,
         'createdAt': FieldValue.serverTimestamp(),
@@ -244,6 +255,7 @@ class AdminService {
     required String department,
     required String shift,
     String? profileImage,
+    dynamic profileImageFile,
   }) async {
     _lastError = null;
     try {
@@ -254,6 +266,14 @@ class AdminService {
       );
 
       final uid = credential.user!.uid;
+      String? uploadedProfileImage = profileImage;
+      if (profileImageFile != null) {
+        uploadedProfileImage = await _storageService.uploadProfileImage(
+          userId: uid,
+          userType: 'nurse',
+          file: profileImageFile,
+        );
+      }
 
       await _db.collection('users').doc(uid).set({
         'uid': uid,
@@ -265,7 +285,7 @@ class AdminService {
         'shift': shift,
         'role': 'nurse',
         'status': 'active',
-        'profileImage': profileImage,
+        'profileImage': uploadedProfileImage,
         'isAvailable': true,
         'createdAt': FieldValue.serverTimestamp(),
       });

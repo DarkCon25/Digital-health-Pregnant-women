@@ -41,7 +41,7 @@ class _DoctorMonitoringScreenState extends State<DoctorMonitoringScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          DoctorPageHeader(
+          const DoctorPageHeader(
             title: DoctorStrings.monitoringTitle,
             subtitle: DoctorStrings.monitoringPageSubtitle,
           ),
